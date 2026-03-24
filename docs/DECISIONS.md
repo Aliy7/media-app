@@ -328,3 +328,92 @@ The spec version should be updated to reflect 8.3.x in Phase 5 hardening.
 **Why:** Pinned versions prevent unexpected behaviour from a `:latest` tag
 changing between runs. Alpine for both keeps image size small — neither service
 requires the full Debian package set.
+
+---
+
+## Part 4 — Phase 1 Incidents & Learnings
+
+### D-026 · Laravel 13 renamed the CSRF middleware — all Breeze scaffold tests failed silently
+**Date:** 2026-03-24
+**Phase:** 1 (discovered during automated test run)
+
+**What happened:**
+All 14 Breeze scaffold tests that involved POST/PATCH/PUT/DELETE requests
+failed. Tests produced two distinct failure signatures:
+
+1. `Expected response status code [301, 302...] but received 419` — on
+   profile updates, password changes, account deletion (any authenticated
+   write request via `actingAs()`).
+2. `The user is not authenticated` — on login and registration tests. These
+   also received 419 internally, but the tests asserted on `assertAuthenticated()`
+   before asserting on the status code, so the 419 was masked by the auth
+   failure message.
+
+GET requests all passed. Write-method tests all failed. The pattern was exact.
+
+**Root cause:**
+Laravel 13 renamed the CSRF middleware. The class previously known as
+`Illuminate\Foundation\Http\Middleware\VerifyCsrfToken` (Laravel ≤10) and
+`Illuminate\Foundation\Http\Middleware\ValidateCsrfToken` (Laravel 11–12) was
+renamed to `Illuminate\Foundation\Http\Middleware\PreventRequestForgery` in
+Laravel 13. The new class registers itself in the `web` middleware group and
+runs on all non-GET requests.
+
+With `SESSION_DRIVER=array` in tests, each test request starts with a fresh
+empty session — no CSRF token stored. The request body also contains no
+`_token`. `PreventRequestForgery::tokensMatch()` returns false → 419.
+
+**Why the built-in bypass did not fire:**
+`PreventRequestForgery` has a built-in `runningUnitTests()` check at line 99
+of the class. It returns true when
+`$this->app->runningInConsole() && $this->app->runningUnitTests()`. This
+should auto-bypass CSRF in tests. Investigation confirmed that at the point
+these requests are processed, `app()->runningUnitTests()` was not returning
+true reliably within the middleware's execution context.
+
+**Approaches tried and rejected:**
+
+| Approach | Result | Why Rejected |
+|---|---|---|
+| Remove `ValidateCsrfToken` in `bootstrap/app.php` `withMiddleware` | No effect | Wrong class name — this class is not registered in Laravel 13 |
+| Remove `PreventRequestForgery` in `bootstrap/app.php` using `app()->runningUnitTests()` | No effect | The condition evaluated too early in the boot cycle before the app environment was fully detected as `testing` |
+
+**Fix applied:**
+`tests/TestCase.php` — call `$this->withoutMiddleware(PreventRequestForgery::class)`
+in `setUp()` after `parent::setUp()`:
+
+```php
+protected function setUp(): void
+{
+    parent::setUp();
+    $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class);
+}
+```
+
+This is explicit, runs after the application is fully created, and applies
+globally to all tests. All 25 tests pass after this change.
+
+**Lessons recorded:**
+
+1. When upgrading to a new major Laravel version, check middleware class names
+   have not been renamed. The class name changed across three consecutive major
+   versions.
+2. Breeze scaffold tests are the fastest signal that the test environment is
+   correctly wired. If they fail on a fresh install, the fault is almost always
+   in the test infrastructure (CSRF, session, environment detection), not in
+   Breeze itself.
+3. The `bootstrap/app.php` `withMiddleware` callback is not a reliable location
+   for environment-conditional middleware removal — the `app()` container may
+   not have the environment bound at the point the callback runs. Prefer
+   `TestCase::setUp()` for test-layer concerns.
+4. The `array` session driver is correct for tests and was not the problem.
+   The `SESSION_DRIVER=array` difference between `.env` (redis) and
+   `.env.testing` (array) is intentional and expected.
+
+**Files changed:**
+- `tests/TestCase.php` — added `setUp()` with `withoutMiddleware()`
+- `bootstrap/app.php` — reverted to clean empty `withMiddleware` callback
+  (two intermediate attempts were made and reversed before the final fix)
+
+**Breeze version at time of incident:** `laravel/breeze v2.4.1` (2026-03-10)
+**Laravel framework version:** `^13.0`

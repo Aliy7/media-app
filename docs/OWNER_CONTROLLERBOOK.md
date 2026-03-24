@@ -20,9 +20,9 @@
 ## CURRENT STATUS
 
 ```
-Phase:        [ 0 — COMPLETE ]  →  [ 1 — IN PROGRESS ]  →  [ 2 ]  →  [ 3 ]  →  [ 4 ]  →  [ 5 ]  →  [ 6 ]
-Last sign-off: Phase 0 — 2026-03-23
-Next gate:     Phase 1 exit review
+Phase:        [ 0 — COMPLETE ]  →  [ 1 — COMPLETE ]  →  [ 2 — READY ]  →  [ 3 ]  →  [ 4 ]  →  [ 5 ]  →  [ 6 ]
+Last sign-off: Phase 1 — 2026-03-24
+Next gate:     Phase 2 exit review
 ```
 
 > **Update this block at the start of every session.**
@@ -78,6 +78,7 @@ what the next task to pull into In Progress should be.
 ---
 
 ## PHASE 1 — INFRASTRUCTURE & SKELETON
+### Status: ✅ COMPLETE — Signed off 2026-03-24
 
 ### Before You Start — Ask the Agent
 
@@ -127,27 +128,23 @@ Do not summarise — paste the actual terminal output.
 
 ### Phase 1 Exit Gate
 
-Before signing off, confirm all of the following:
+- [x] `docker compose up -d` starts all services with no errors — **confirmed 2026-03-24**
+- [x] Laravel welcome page loads at `http://localhost` — **confirmed 2026-03-24**
+- [x] `.env.example` exists and `.env` is in `.gitignore` — **confirmed 2026-03-24**
+- [x] Database migrations run cleanly — **confirmed 2026-03-24** (3 default migrations: users, cache, jobs)
+- [x] Redis connection confirmed — **confirmed 2026-03-24**
+- [x] Queue worker starts without error — **confirmed 2026-03-24** (Horizon container running)
+- [x] Horizon dashboard accessible at `/horizon` — **confirmed 2026-03-24**
+- [x] User registration, login, logout work in browser — **confirmed 2026-03-24**
+- [x] Soketi reachable at `http://localhost:6001` — **confirmed 2026-03-24**
+- [x] All Breeze scaffold tests pass: 25/25 — **confirmed 2026-03-24**
+- [x] No Phase 2 code has been written — **confirmed 2026-03-24**
 
-- [ ] `docker compose up -d` starts all services with no errors
-- [ ] Laravel welcome page loads at `http://localhost`
-- [ ] `.env.example` exists and `.env` is in `.gitignore`
-- [ ] Database migrations run cleanly
-- [ ] Redis connection confirmed
-- [ ] Queue worker starts without error
-- [ ] All Phase 1 Kanban cards are in Done
-- [ ] No Phase 2 code has been written
+**Incident recorded:** All Breeze scaffold tests initially failed (14/25) due to
+Laravel 13 renaming the CSRF middleware to `PreventRequestForgery`. Fixed via
+`tests/TestCase.php`. Full incident recorded in `DECISIONS.md` entry D-026.
 
-**Sign-off prompt:**
-```
-Phase 1 exit review. Show me:
-1. docker compose ps output
-2. php artisan migrate:status output
-3. All Phase 1 Kanban cards moved to Done
-4. Confirmation that no Phase 2 tasks have been started
-```
-
-**Owner sign-off:** `[ ] Signed off — Date: ____________`
+**Owner sign-off:** `[x] Signed off — Date: 2026-03-24`
 
 ---
 
@@ -401,7 +398,8 @@ and its output. Do not skip any step.
 |---|------|----------|--------|----------------------|
 | 1 | 2026-03-23 | Iterative Incremental + Kanban methodology | Suits assignment scope and pairing model | Waterfall, Scrum |
 | 2 | 2026-03-23 | Tech stack per PROJECT_SPEC.md | Agreed in Phase 0 | — |
-| — | | | | |
+| 3 | 2026-03-24 | PHP 8.3 used instead of 8.5 (D-025) | PHP 8.5 Docker image broke ext-install tooling | Stay on 8.5 |
+| 4 | 2026-03-24 | CSRF fix in TestCase.php not bootstrap/app.php (D-026) | Laravel 13 renamed middleware; bootstrap approach unreliable at boot time | bootstrap/app.php withMiddleware callback |
 
 ---
 
@@ -462,4 +460,4 @@ Give me a project status report:
 ---
 
 *This document is for the human controller only. The agent follows IMPLEMENTATION_PLAN.md.*
-*Last updated: 2026-03-23*
+*Last updated: 2026-03-24*
