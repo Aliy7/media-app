@@ -81,7 +81,7 @@ Laravel testing tools used:
 | Tech stack versions agreed | Read section 4, confirm no version marked "TBD" |
 | Increment exit criteria understood | Read each phase exit criterion — no ambiguity |
 
-**Rollback:** N/A — no code written. Amend spec documents directly.
+**Rollback:** N/A — no code written. Amend spec documents directly. No rollback needed 
 
 **Git Commit:** Commit all three spec documents together.
 ```
