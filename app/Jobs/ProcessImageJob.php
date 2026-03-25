@@ -69,7 +69,6 @@ class ProcessImageJob implements ShouldQueue
             ]);
             event(new MediaProcessingFailed($media, 'batch', $e->getMessage()));
         })
-        ->onQueue('media-standard')
         ->dispatch();
     }
 

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\InvalidMediaException;
+use App\Jobs\ProcessImageJob;
 use App\Models\Media;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -48,6 +49,8 @@ class MediaUploadService
         $media->uuid    = $uuid;
         $media->status  = Media::STATUS_PENDING;
         $media->save();
+
+        ProcessImageJob::dispatch($media);
 
         return $media;
     }
