@@ -34,7 +34,7 @@ class ProcessImageJob implements ShouldQueue
     public int $timeout = 120;
 
     public function __construct(
-        private readonly Media $media,
+        public readonly Media $media,
         private readonly int   $width           = 1920,
         private readonly int   $height          = 1080,
         private readonly int   $thumbnailWidth  = 0,

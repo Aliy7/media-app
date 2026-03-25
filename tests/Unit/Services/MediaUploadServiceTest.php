@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\MediaUploadService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -21,6 +22,7 @@ class MediaUploadServiceTest extends TestCase
     {
         parent::setUp();
         Storage::fake('media');
+        Queue::fake();
         $this->service = new MediaUploadService();
     }
 
