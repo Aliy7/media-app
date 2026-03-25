@@ -74,14 +74,14 @@ class ImageProcessingServiceTest extends TestCase
 
     public function test_thumbnail_writes_output_file_to_storage(): void
     {
-        $outputPath = $this->service->thumbnail('fixture.jpg', 100, 'media');
+        $outputPath = $this->service->thumbnail('fixture.jpg', 100, 100, 'media');
 
         Storage::disk('media')->assertExists($outputPath);
     }
 
     public function test_thumbnail_produces_square_output(): void
     {
-        $outputPath = $this->service->thumbnail('fixture.jpg', 100, 'media');
+        $outputPath = $this->service->thumbnail('fixture.jpg', 100, 100, 'media');
 
         [$width, $height] = getimagesize($this->absolutePath($outputPath));
         $this->assertEquals(100, $width);
@@ -90,7 +90,7 @@ class ImageProcessingServiceTest extends TestCase
 
     public function test_thumbnail_output_path_contains_thumbnail_suffix(): void
     {
-        $outputPath = $this->service->thumbnail('fixture.jpg', 100, 'media');
+        $outputPath = $this->service->thumbnail('fixture.jpg', 100, 100, 'media');
 
         $this->assertStringContainsString('thumbnail', $outputPath);
     }
@@ -157,7 +157,7 @@ class ImageProcessingServiceTest extends TestCase
         $this->expectException(ImageProcessingException::class);
         $this->expectExceptionMessageMatches('/Thumbnail/');
 
-        $this->service->thumbnail('corrupt.jpg', 100, 'media');
+        $this->service->thumbnail('corrupt.jpg', 100, 100, 'media');
     }
 
     public function test_optimize_throws_image_processing_exception_on_invalid_file(): void

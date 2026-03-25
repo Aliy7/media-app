@@ -42,22 +42,23 @@ class ImageProcessingService
     }
 
     /**
-     * Generate a square thumbnail by cropping to fill the given size.
+     * Generate a thumbnail by cropping to fill the given dimensions.
      *
-     * @param  string  $path  Path relative to the given disk
-     * @param  int     $size  Side length in pixels
-     * @param  string  $disk  Laravel storage disk name
-     * @return string         Output path on the same disk
+     * @param  string  $path    Path relative to the given disk
+     * @param  int     $width   Target width in pixels
+     * @param  int     $height  Target height in pixels
+     * @param  string  $disk    Laravel storage disk name
+     * @return string           Output path on the same disk
      *
      * @throws ImageProcessingException
      */
-    public function thumbnail(string $path, int $size, string $disk = 'media'): string
+    public function thumbnail(string $path, int $width, int $height, string $disk = 'media'): string
     {
         try {
             $contents   = Storage::disk($disk)->get($path);
             $outputPath = $this->outputPath($path, 'thumbnail');
 
-            $image   = $this->manager->read($contents)->cover($size, $size);
+            $image   = $this->manager->read($contents)->cover($width, $height);
             $encoded = $this->encodeForFormat($image, $path, quality: 85);
 
             Storage::disk($disk)->put($outputPath, $encoded);

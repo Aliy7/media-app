@@ -20,12 +20,19 @@ class Media extends Model
         'stored_filename',
         'mime_type',
         'file_size',
+        'status',
+        'processing_step',
+        'progress',
+        'error_message',
+        'outputs',
+        'bytes_processed',
     ];
 
     protected $casts = [
         'outputs'  => 'array',
         'progress' => 'integer',
-        'file_size' => 'integer',
+        'file_size'        => 'integer',
+        'bytes_processed'  => 'integer',
     ];
 
     public function user(): BelongsTo
