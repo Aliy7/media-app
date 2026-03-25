@@ -2,80 +2,135 @@
 
 namespace App\Services;
 
-use Intervention\Image\Drivers\Imagick\Driver as ImagickDriver;
+use App\Exceptions\ImageProcessingException;
+use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
+use Intervention\Image\Interfaces\ImageInterface; // used in private encode helpers
 
 class ImageProcessingService
 {
-    private ImageManager $manager;
-
-    public function __construct()
-    {
-        $this->manager = new ImageManager(new ImagickDriver());
-    }
+    public function __construct(private readonly ImageManager $manager) {}
 
     /**
      * Resize an image to the given dimensions.
      *
-     * @param  string  $path        Absolute path to the source image
-     * @param  int     $width       Target width in pixels
-     * @param  int     $height      Target height in pixels
-     * @param  string  $outputDir   Directory to write the resized file into
-     * @return string               Absolute path of the written file
+     * @param  string  $path   Path relative to the given disk
+     * @param  int     $width  Target width in pixels
+     * @param  int     $height Target height in pixels
+     * @param  string  $disk   Laravel storage disk name
+     * @return string          Output path on the same disk
+     *
+     * @throws ImageProcessingException
      */
-    public function resize(string $path, int $width, int $height, string $outputDir): string
+    public function resize(string $path, int $width, int $height, string $disk = 'media'): string
     {
-        $filename   = pathinfo($path, PATHINFO_FILENAME);
-        $extension  = pathinfo($path, PATHINFO_EXTENSION) ?: 'jpg';
-        $outputPath = $outputDir . '/' . $filename . '_resized.' . $extension;
+        try {
+            $contents   = Storage::disk($disk)->get($path);
+            $outputPath = $this->outputPath($path, 'resized');
 
-        $this->manager
-            ->read($path)
-            ->resize($width, $height)
-            ->save($outputPath);
+            $image   = $this->manager->read($contents)->resize($width, $height);
+            $encoded = $this->encodeForFormat($image, $path, quality: 90);
 
-        return $outputPath;
+            Storage::disk($disk)->put($outputPath, $encoded);
+
+            return $outputPath;
+        } catch (ImageProcessingException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            throw new ImageProcessingException("Resize failed for [{$path}]: {$e->getMessage()}", previous: $e);
+        }
     }
 
     /**
      * Generate a square thumbnail by cropping to fill the given size.
      *
-     * @param  string  $path        Absolute path to the source image
-     * @param  int     $size        Side length in pixels for the square thumbnail
-     * @param  string  $outputDir   Directory to write the thumbnail into
-     * @return string               Absolute path of the written file
+     * @param  string  $path  Path relative to the given disk
+     * @param  int     $size  Side length in pixels
+     * @param  string  $disk  Laravel storage disk name
+     * @return string         Output path on the same disk
+     *
+     * @throws ImageProcessingException
      */
-    public function thumbnail(string $path, int $size, string $outputDir): string
+    public function thumbnail(string $path, int $size, string $disk = 'media'): string
     {
-        $filename   = pathinfo($path, PATHINFO_FILENAME);
-        $extension  = pathinfo($path, PATHINFO_EXTENSION) ?: 'jpg';
-        $outputPath = $outputDir . '/' . $filename . '_thumbnail.' . $extension;
+        try {
+            $contents   = Storage::disk($disk)->get($path);
+            $outputPath = $this->outputPath($path, 'thumbnail');
 
-        $this->manager
-            ->read($path)
-            ->cover($size, $size)
-            ->save($outputPath);
+            $image   = $this->manager->read($contents)->cover($size, $size);
+            $encoded = $this->encodeForFormat($image, $path, quality: 85);
 
-        return $outputPath;
+            Storage::disk($disk)->put($outputPath, $encoded);
+
+            return $outputPath;
+        } catch (ImageProcessingException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            throw new ImageProcessingException("Thumbnail generation failed for [{$path}]: {$e->getMessage()}", previous: $e);
+        }
     }
 
     /**
-     * Optimise an image by reducing JPEG quality to 75.
+     * Optimise an image by reducing quality. Format is preserved from the source file.
      *
-     * @param  string  $path        Absolute path to the source image
-     * @param  string  $outputDir   Directory to write the optimised file into
-     * @return string               Absolute path of the written file
+     * @param  string  $path  Path relative to the given disk
+     * @param  string  $disk  Laravel storage disk name
+     * @return string         Output path on the same disk
+     *
+     * @throws ImageProcessingException
      */
-    public function optimize(string $path, string $outputDir): string
+    public function optimize(string $path, string $disk = 'media'): string
     {
-        $filename   = pathinfo($path, PATHINFO_FILENAME);
-        $outputPath = $outputDir . '/' . $filename . '_optimized.jpg';
+        try {
+            $contents   = Storage::disk($disk)->get($path);
+            $outputPath = $this->outputPath($path, 'optimized');
 
-        $this->manager
-            ->read($path)
-            ->toJpeg(75)
-            ->save($outputPath);
+            $image   = $this->manager->read($contents);
+            $encoded = $this->encodeOptimized($image, $path);
 
-        return $outputPath;
+            Storage::disk($disk)->put($outputPath, $encoded);
+
+            return $outputPath;
+        } catch (ImageProcessingException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            throw new ImageProcessingException("Optimization failed for [{$path}]: {$e->getMessage()}", previous: $e);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Private helpers
+    // -----------------------------------------------------------------------
+
+    private function outputPath(string $sourcePath, string $suffix): string
+    {
+        $dir      = ltrim(dirname($sourcePath), '.');
+        $filename = pathinfo($sourcePath, PATHINFO_FILENAME);
+        $ext      = pathinfo($sourcePath, PATHINFO_EXTENSION) ?: 'jpg';
+        $prefix   = $dir ? $dir . '/' : '';
+
+        return $prefix . 'outputs/' . $filename . '_' . $suffix . '.' . $ext;
+    }
+
+    private function encodeForFormat(ImageInterface $image, string $sourcePath, int $quality = 90): string
+    {
+        return match (strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION))) {
+            'png'        => $image->toPng()->toString(),
+            'gif'        => $image->toGif()->toString(),
+            'webp'       => $image->toWebp($quality)->toString(),
+            'avif'       => $image->toAvif($quality)->toString(),
+            default      => $image->toJpeg($quality)->toString(),
+        };
+    }
+
+    private function encodeOptimized(ImageInterface $image, string $sourcePath): string
+    {
+        return match (strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION))) {
+            'png'   => $image->toPng()->toString(),   // PNG is lossless; compression handled by encoder defaults
+            'gif'   => $image->toGif()->toString(),
+            'webp'  => $image->toWebp(65)->toString(),
+            'avif'  => $image->toAvif(65)->toString(),
+            default => $image->toJpeg(75)->toString(),
+        };
     }
 }
