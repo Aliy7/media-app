@@ -10,9 +10,11 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "intervention/image": "^3.11",
         "laravel/framework": "^13.0",
         "laravel/horizon": "^5.0",
         "laravel/tinker": "^3.0",
+        "livewire/livewire": "^3.0",
         "pusher/pusher-php-server": "^7.0"
     },
     "require-dev": {

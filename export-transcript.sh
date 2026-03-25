@@ -2,11 +2,80 @@
 # Export Claude Code session transcripts to a single consolidated file
 # Usage: ./export-transcript.sh [output_dir]
 
-SESSIONS_DIR="$HOME/.claude/projects/-home-a-muktar-projects-media-app"
-OUTPUT_DIR="${1:-$HOME/projects/media-app/transcripts}"
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_NAME="$(basename "$SCRIPT_DIR")"
+
+slugify_path() {
+  # Claude Code project dirs typically look like: -home-a-muktar-projects-media-app
+  # This mirrors that shape by replacing path separators and '_' with '-'.
+  local input="$1"
+  printf '%s' "$input" | sed -e 's|/|-|g' -e 's|_|-|g'
+}
+
+SESSIONS_ROOT="${CLAUDE_SESSIONS_ROOT:-$HOME/.claude/projects}"
+SESSIONS_DIR="${CLAUDE_SESSIONS_DIR:-}"
+
+if [[ -z "${SESSIONS_DIR}" ]]; then
+  candidate1="$SESSIONS_ROOT/$(slugify_path "$SCRIPT_DIR")"
+  candidate2="$SESSIONS_ROOT/$(printf '%s' "$SCRIPT_DIR" | sed -e 's|/|-|g')"
+
+  if [[ -d "$candidate1" ]]; then
+    SESSIONS_DIR="$candidate1"
+  elif [[ -d "$candidate2" ]]; then
+    SESSIONS_DIR="$candidate2"
+  else
+    # Fallback: pick the most recently modified project dir that looks related.
+    # This prevents "no transcript created" when Claude Code's project slug differs.
+    best_dir=""
+    best_mtime=0
+    for d in "$SESSIONS_ROOT"/*; do
+      [[ -d "$d" ]] || continue
+      base="$(basename "$d")"
+      [[ "$base" == *"$PROJECT_NAME"* ]] || continue
+
+      mtime="$(stat -c %Y "$d" 2>/dev/null || stat -f %m "$d" 2>/dev/null || echo 0)"
+      if [[ "$mtime" =~ ^[0-9]+$ ]] && (( mtime > best_mtime )); then
+        best_mtime="$mtime"
+        best_dir="$d"
+      fi
+    done
+    SESSIONS_DIR="$best_dir"
+  fi
+fi
+
+OUTPUT_DIR="${1:-$SCRIPT_DIR/transcripts}"
 CONSOLIDATED_FILE="$OUTPUT_DIR/cfd06922-1608-4794-8c6b-78433380987f.md"
+LOG_FILE="${CLAUDE_TRANSCRIPT_LOG:-$OUTPUT_DIR/claude-transcript-export.log}"
 
 mkdir -p "$OUTPUT_DIR"
+mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+
+log() {
+  printf '[%s] %s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$*" >>"$LOG_FILE" 2>/dev/null || true
+}
+
+if [[ -z "${SESSIONS_DIR}" || ! -d "${SESSIONS_DIR}" ]]; then
+  log "No sessions dir found. Tried root='$SESSIONS_ROOT' script_dir='$SCRIPT_DIR'."
+  exit 0
+fi
+
+# Claude Code may flush its session jsonl slightly after hooks fire (especially on submit).
+# Retry a couple times before giving up.
+attempt=1
+max_attempts=3
+while :; do
+  if ls "$SESSIONS_DIR"/*.jsonl >/dev/null 2>&1; then
+    break
+  fi
+  if [[ "$attempt" -ge "$max_attempts" ]]; then
+    log "No *.jsonl in sessions dir: $SESSIONS_DIR"
+    exit 0
+  fi
+  attempt=$((attempt + 1))
+  sleep 0.2
+done
 
 python3 - "$SESSIONS_DIR" "$CONSOLIDATED_FILE" <<'PYTHON'
 import sys, json, os, glob
@@ -20,7 +89,7 @@ for jsonl_file in sorted(glob.glob(os.path.join(sessions_dir, "*.jsonl"))):
     session_id = os.path.basename(jsonl_file).replace('.jsonl', '')
     messages = []
 
-    with open(jsonl_file) as f:
+    with open(jsonl_file, encoding="utf-8", errors="replace") as f:
         for line in f:
             line = line.strip()
             if not line:
@@ -93,4 +162,4 @@ with open(output_file, 'w') as f:
 print(f"Exported {len(all_sessions)} session(s) to: {output_file}")
 PYTHON
 
-echo "Done. Transcripts saved to: $CONSOLIDATED_FILE"
+log "Exported transcripts from '$SESSIONS_DIR' to '$CONSOLIDATED_FILE'"

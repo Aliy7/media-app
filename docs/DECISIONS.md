@@ -101,11 +101,10 @@ Resolved open question OQ-1 (Laravel 11 vs 12 — superseded by 13).
 
 ---
 
-### D-002 · PHP version: 8.5.x
-**Decided:** PHP 8.5.3 as shipped by Laravel Sail's runtime.
-**Why:** Active branch. All required packages support ≥ PHP 8.2; running the
-version Sail ships avoids version-mismatch risk.
-Resolved open question OQ-2 (PHP 8.3 vs 8.4 — moot; Sail ships 8.5).
+### D-002 · PHP version: 8.3.x
+**Decided:** PHP 8.3.x (Docker base image `php:8.3-fpm-bookworm`), confirmed running in the app container.
+**Why:** Broad ecosystem support and reliable Docker builds while satisfying all package requirements (Laravel 13, Horizon 5, Intervention Image 3, Imagick via PECL).
+Resolved open question OQ-2 (PHP 8.3 vs 8.4 — choosing 8.3 for stability and compatibility).
 
 ---
 
@@ -239,7 +238,7 @@ correctness and testability, not just feature completeness.
 ## Part 3 — Infrastructure Decisions (Phase 1)
 
 ### D-017 · Custom Dockerfile (not Sail's runtime)
-**Decided:** Project-owned `Dockerfile` based on `php:8.5-fpm-bookworm`.
+**Decided:** Project-owned `Dockerfile` based on `php:8.3-fpm-bookworm`.
 **Why:** Sail's runtime lives in `vendor/` — not committed, not readable as
 project documentation, and changes with Sail upgrades. A project-owned
 Dockerfile is reproducible, readable, and appropriate for submission.
@@ -248,18 +247,18 @@ Dockerfile is reproducible, readable, and appropriate for submission.
 ---
 
 ### D-018 · Debian base image (not Alpine) for the app container
-**Decided:** `php:8.5-fpm-bookworm` (Debian Bookworm).
+**Decided:** `php:8.3-fpm-bookworm` (Debian Bookworm).
 **Why:** Imagick's system dependencies (`libmagickwand-dev`, etc.) are
 significantly more reliable on Debian. Alpine has a history of subtle
 compatibility issues with PECL extensions that would violate the OQ-3 blocker
 policy on Imagick.
-**Rejected:** `php:8.5-fpm-alpine` — smaller image, but higher Imagick install
+**Rejected:** `php:8.3-fpm-alpine` — smaller image, but higher Imagick install
 risk.
 
 ---
 
 ### D-019 · Horizon runs as a separate container
-**Decided:** Dedicated `horizon` service in docker-compose reusing the
+**Decided:** Dedicated `horizon` service in Docker Compose reusing the
 `mediaflow/app` image, with command override `php artisan horizon`.
 **Why:** Separates HTTP (PHP-FPM) from queue processing cleanly. Each can be
 restarted independently. Mirrors production practice.
@@ -317,9 +316,7 @@ builds cleanly, and satisfies all package requirements (`laravel/framework ^13`,
 original lock file was produced on PHP 8.4+ and had `symfony/*` packages locked
 to v8.x (requiring PHP ≥8.4). The new lock file resolves all dependencies to
 symfony 7.x, which is compatible with PHP 8.3.
-**Spec deviation:** PROJECT_SPEC.md § 4 specifies PHP 8.5.x. This deviation is
-recorded here as a forced infrastructure constraint, not a design preference.
-The spec version should be updated to reflect 8.3.x in Phase 5 hardening.
+**Spec update:** PROJECT_SPEC.md was updated to reflect PHP 8.3.x as the pinned baseline to match the Docker build and keep the documentation consistent with the running system.
 
 ---
 

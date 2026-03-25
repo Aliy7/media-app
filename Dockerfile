@@ -1,6 +1,6 @@
 # =============================================================================
 # MediaFlow — Application Image
-# Base: PHP 8.5-FPM (Debian Bookworm)
+# Base: PHP 8.3-FPM (Debian Bookworm)
 #
 # Includes:
 #   - PHP extensions: pdo_mysql, gd, imagick, redis, bcmath, zip, exif, pcntl

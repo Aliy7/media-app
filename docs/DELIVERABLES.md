@@ -26,28 +26,28 @@ The application runs from a single command on any machine with Docker installed.
 ### 2.1 Infrastructure
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
-| `docker-compose.yml` defining all services | [ ] | Phase 1 | Step 1 |
-| `Dockerfile` for the PHP application container | [ ] | Phase 1 | Step 1 |
-| `nginx.conf` web server configuration | [ ] | Phase 1 | Step 1 |
-| `.env.example` with all variables documented | [ ] | Phase 1 | Step 1 |
-| All services start and communicate with `docker compose up` | [ ] | Phase 1 | Step 1 |
+| `compose.yaml` defining all services | [x] | Phase 1 | Step 1 |
+| `Dockerfile` for the PHP application container | [x] | Phase 1 | Step 1 |
+| `docker/nginx/default.conf` web server configuration | [x] | Phase 1 | Step 1 |
+| `.env.example` with all variables documented | [x] | Phase 1 | Step 1 |
+| All services start and communicate with `docker compose up` | [x] | Phase 1 | Step 1 |
 
 ### 2.2 Authentication
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
-| User registration with email/password | [ ] | Phase 1 | Step 2 |
-| User login and logout | [ ] | Phase 1 | Step 2 |
-| All media routes protected behind authentication | [ ] | Phase 2 | Step 2 |
-| Unauthenticated access redirected appropriately | [ ] | Phase 2 | Step 2 |
+| User registration with email/password | [x] | Phase 1 | Step 2 |
+| User login and logout | [x] | Phase 1 | Step 2 |
+| All media routes protected behind authentication | [x] | Phase 2 | Step 2 |
+| Unauthenticated access redirected appropriately | [x] | Phase 2 | Step 2 |
 
 ### 2.3 Image Upload
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
-| Upload form accepting image files | [ ] | Phase 2 | Step 3 |
-| Server-side validation: MIME type, file size, image dimensions | [ ] | Phase 2 | Step 6 |
-| User-facing validation error messages | [ ] | Phase 2 | Step 6 |
-| Uploaded file stored on disk with system-generated filename | [ ] | Phase 2 | Step 3 |
-| `media` database record created with status `pending` | [ ] | Phase 2 | Step 3 |
+| Upload form accepting image files | [x] | Phase 2 | Step 3 |
+| Server-side validation: MIME type, file size, image dimensions | [x] | Phase 2 | Step 6 |
+| User-facing validation error messages | [x] | Phase 2 | Step 6 |
+| Uploaded file stored on disk with system-generated filename | [x] | Phase 2 | Step 3 |
+| `media` database record created with status `pending` | [x] | Phase 2 | Step 3 |
 
 ### 2.4 Queue Processing
 | Deliverable | Done | Phase | Demo Step |
@@ -61,11 +61,11 @@ The application runs from a single command on any machine with Docker installed.
 ### 2.5 Queue Configuration
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
-| Redis as queue driver | [ ] | Phase 1 | Step 5 |
+| Redis as queue driver | [x] | Phase 1 | Step 5 |
 | Named queues with priorities: `media-critical`, `media-standard`, `media-low` | [ ] | Phase 3 | Step 5 |
 | Jobs configured with retry attempts and exponential backoff | [ ] | Phase 3 | Step 6 |
 | Job timeout configured | [ ] | Phase 3 | Step 5 |
-| Laravel Horizon supervising workers | [ ] | Phase 1 | Step 5 |
+| Laravel Horizon supervising workers | [x] | Phase 1 | Step 5 |
 
 ### 2.6 Failed Job Handling
 | Deliverable | Done | Phase | Demo Step |
@@ -78,7 +78,7 @@ The application runs from a single command on any machine with Docker installed.
 ### 2.7 Real-Time Broadcasting
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
-| Soketi WebSocket server running in Docker | [ ] | Phase 1 | Step 4 |
+| Soketi WebSocket server running in Docker | [x] | Phase 1 | Step 4 |
 | Private broadcast channels scoped to individual media items | [ ] | Phase 4 | Step 4 |
 | Channel authentication verifies media ownership | [ ] | Phase 4 | Step 7 |
 | Events broadcast: started, step completed, completed, failed | [ ] | Phase 4 | Step 4 |
@@ -96,7 +96,7 @@ The application runs from a single command on any machine with Docker installed.
 ### 2.9 Horizon Dashboard
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
-| Accessible at `/horizon` (authenticated) | [ ] | Phase 1 | Step 5 |
+| Accessible at `/horizon` (authenticated) | [x] | Phase 1 | Step 5 |
 | Real-time job throughput visible | [ ] | Phase 3 | Step 5 |
 | Failed jobs visible with exception details | [ ] | Phase 3 | Step 6 |
 | Queue metrics: jobs per minute, wait time, runtime | [ ] | Phase 3 | Step 5 |
@@ -104,8 +104,8 @@ The application runs from a single command on any machine with Docker installed.
 ### 2.10 OOP & MVC Architecture
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
-| Controllers contain no business logic | [ ] | Phase 2 | Step 7 |
-| `MediaUploadService` encapsulates upload logic | [ ] | Phase 2 | Step 7 |
+| Controllers contain no business logic | [x] | Phase 2 | Step 7 |
+| `MediaUploadService` encapsulates upload logic | [x] | Phase 2 | Step 7 |
 | `ImageProcessingService` encapsulates Intervention Image operations | [ ] | Phase 3 | Step 7 |
 | Each job class has a single processing responsibility | [ ] | Phase 3 | Step 7 |
 | Events carry data only, no logic | [ ] | Phase 4 | Step 7 |
@@ -115,8 +115,8 @@ The application runs from a single command on any machine with Docker installed.
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
 | Unit tests: service classes, job classes, model relationships | [ ] | Phase 2–4 | — |
-| Feature tests: all HTTP endpoints | [ ] | Phase 2 | — |
-| Auth tests: protected routes reject unauthenticated requests | [ ] | Phase 2 | — |
+| Feature tests: all HTTP endpoints | [x] | Phase 2 | — |
+| Auth tests: protected routes reject unauthenticated requests | [x] | Phase 2 | — |
 | Queue tests: `Queue::fake()` asserts jobs dispatched correctly | [ ] | Phase 3 | — |
 | Event tests: `Event::fake()` asserts events fired from correct job steps | [ ] | Phase 4 | — |
 | All tests pass: `php artisan test` | [ ] | Phase 5 | — |
@@ -125,11 +125,11 @@ The application runs from a single command on any machine with Docker installed.
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
 | `README.md`: setup, demo credentials, architecture overview | [ ] | Phase 6 | Step 1 |
-| `docs/PROJECT_SPEC.md` | [ ] | Phase 0 | Step 7 |
-| `docs/IMPLEMENTATION_PLAN.md` | [ ] | Phase 0 | Step 7 |
-| `docs/DELIVERABLES.md` | [ ] | Phase 0 | Step 7 |
+| `docs/PROJECT_SPEC.md` | [x] | Phase 0 | Step 7 |
+| `docs/IMPLEMENTATION_PLAN.md` | [x] | Phase 0 | Step 7 |
+| `docs/DELIVERABLES.md` | [x] | Phase 0 | Step 7 |
 | Code comments on non-obvious logic only | [ ] | Phase 5 | Step 7 |
-| `transcripts/` — session transcripts as evidence of coding agent usage | [ ] | All phases | Step 7 |
+| `transcripts/` — session transcripts as evidence of coding agent usage | [x] | All phases | Step 7 |
 | `.github/workflows/tests.yml` — CI pipeline | [ ] | Phase 6 | Step 7 |
 
 ---

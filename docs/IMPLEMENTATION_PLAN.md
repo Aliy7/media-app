@@ -91,16 +91,16 @@ Message: "docs: add project specification, implementation plan, and deliverables
 
 ---
 
-## Phase 1 — Infrastructure & Skeleton
+## Phase 1 — Infrastructure & Skeleton *(Complete)*
 
 **Goal:** A running, authenticated Laravel application with all infrastructure services connected.
 
 ### Tasks
 
 #### 1.1 Docker Compose Environment
-- [ ] Write `docker-compose.yml` with services: `app`, `nginx`, `mysql`, `redis`, `soketi`, `horizon`
+- [ ] Write `compose.yaml` with services: `app`, `nginx`, `mysql`, `redis`, `soketi`, `horizon`
 - [ ] Write `Dockerfile` for PHP 8.3-FPM with Imagick extension installed
-- [ ] Write `nginx.conf` for Laravel
+- [ ] Write `docker/nginx/default.conf` for Laravel
 - [ ] Write `.env.example` with all required variables documented
 - [ ] Verify: `docker compose up` starts all services without errors
 - [ ] Verify: services communicate (app → mysql, app → redis, app → soketi)
@@ -108,7 +108,7 @@ Message: "docs: add project specification, implementation plan, and deliverables
 #### 1.2 Laravel Installation & Configuration
 - [ ] Verify existing Laravel installation: `docker compose exec app php artisan --version` → must show Laravel 13.x
 - [ ] Verify PHP version: `docker compose exec app php -v` → must show PHP 8.3.x
-- [ ] Verify Node version: `docker compose exec app node -v` → must show v22.x
+- [ ] Verify Node version: `docker compose exec app node -v` → must show v24.x
 - [ ] Install Laravel Breeze (Blade stack)
 - [ ] Configure `.env`: `QUEUE_CONNECTION=redis`, `BROADCAST_CONNECTION=pusher` (Soketi)
 - [ ] Configure `config/broadcasting.php` with Soketi connection details
@@ -132,7 +132,7 @@ Message: "docs: add project specification, implementation plan, and deliverables
 - Horizon dashboard accessible and showing Redis connection
 - No errors in application logs
 
-### Human Review Checkpoint — Phase 1
+### Human Review Checkpoint — Phase 1 - Complete
 **Before running checks: reset to a clean state.**
 ```bash
 docker compose exec app php artisan migrate:fresh
@@ -171,7 +171,7 @@ docker compose exec app php artisan config:clear   # if containers still up
 **Git Commit — Phase 1:**
 Commit once all services are running and tests pass. Do not commit broken state.
 ```
-Files: docker-compose.yml  Dockerfile  nginx.conf  .env.example
+Files: compose.yaml  Dockerfile  docker/nginx/default.conf  .env.example
        config/horizon.php  config/broadcasting.php
        config/queue.php    composer.json  composer.lock
        package.json        package-lock.json
@@ -181,7 +181,7 @@ Message: "infra: add Docker environment, configure Redis queue, Soketi broadcast
 
 ---
 
-## Phase 2 — Core Domain (Vertical Slice 1)
+## Phase 2 — Core Domain (Vertical Slice 1) - Complete
 
 **Goal:** Authenticated user can upload an image. Record persists. File stored. No processing yet.
 

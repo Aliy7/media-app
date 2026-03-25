@@ -86,7 +86,7 @@ Before pulling the first Phase 1 card into In Progress, ask:
 
 ```
 Before we start Phase 1, confirm:
-1. What exact Docker services will be in docker-compose.yml and why?
+1. What exact Docker services will be in compose.yaml and why?
 2. What PHP and Laravel versions will be installed?
 3. What is the first task on the Kanban board for Phase 1?
 4. What tests will prove Phase 1 infrastructure is working?
@@ -175,13 +175,13 @@ docker compose exec app php artisan migrate:fresh
 # All models load without error
 docker compose exec app php artisan tinker --execute="
   echo \App\Models\User::count();
-  echo \App\Models\Image::count();
+  echo \App\Models\Media::count();
 "
 
 # Factories produce valid records
 docker compose exec app php artisan tinker --execute="
-  \App\Models\Image::factory(3)->create();
-  echo \App\Models\Image::count();
+  \App\Models\Media::factory(3)->create();
+  echo \App\Models\Media::count();
 "
 
 # Run model tests
@@ -193,7 +193,7 @@ docker compose exec app php artisan test --filter=Model
 - [ ] All migrations run on a fresh database with no errors
 - [ ] Schema matches PROJECT_SPEC.md exactly — verify column names and types
 - [ ] All models have factories
-- [ ] Relationships tested (e.g. `image->user` returns a User)
+- [ ] Relationships tested (e.g. `media->user` returns a User)
 - [ ] No queue jobs or processing logic present
 - [ ] All Phase 2 Kanban cards in Done
 
@@ -228,10 +228,9 @@ docker compose exec app php artisan test --filter=Upload
 # Queue dispatch test (must use Queue::fake())
 docker compose exec app php artisan test --filter=Dispatch
 
-# Manual test via curl
-curl -X POST http://localhost/api/images \
-  -F "image=@test.jpg" \
-  -H "Authorization: Bearer {token}"
+# Manual test via curl (requires an authenticated session cookie)
+curl -X POST http://localhost/media \
+  -F "file=@test.jpg"
 ```
 
 **Ask the agent to show:**

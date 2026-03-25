@@ -58,7 +58,7 @@ This project addresses that problem by implementing a fully asynchronous image p
 
 | Layer | Technology | Pinned Version | Justification |
 |---|---|---|---|
-| Language | PHP-FPM | **8.5.x** | Active branch in use; full support from all packages; Imagick extension compatibility verified |
+| Language | PHP-FPM | **8.3.x** | Broad ecosystem support; matches the project Docker base image; supports all required packages and extensions (Imagick, Redis, GD) |
 | Framework | Laravel | **13.x** (≥ 13.0) | Slim skeleton, first-class queue/broadcast support; current LTS-track release |
 | Dependency Manager | Composer | **2.9.x** | Required for Laravel 13 install resolution |
 | Authentication | Laravel Breeze | **2.x** | Rapid auth scaffold, Blade-compatible, ships Tailwind |
@@ -301,7 +301,7 @@ POST   /broadcasting/auth       → Laravel broadcast channel authentication
 
 ## 12. Constraints and Assumptions
 
-- PHP 8.5.x required — Intervention Image v3, Laravel 13 both require PHP ≥ 8.2; running 8.5 as shipped by Laravel Sail
+- PHP 8.3.x required — Intervention Image v3 and Laravel 13 require PHP ≥ 8.2; the project Docker image runs PHP 8.3.x
 - Docker Engine ≥ 24.x and Docker Compose plugin ≥ 2.x must be installed on host
 - Imagick PHP extension installed inside the Docker image — host machine does not need it
 - Redis 7.2.x — required by Laravel Horizon; older Redis versions not supported by Horizon 5.x
@@ -309,8 +309,8 @@ POST   /broadcasting/auth       → Laravel broadcast channel authentication
 - Node 24.x — required inside Docker for asset compilation only; not needed on host if building inside container
 - **The system must be fully reproducible via a single command:** `docker compose up` → running app. No manual steps permitted beyond initial `cp .env.example .env`
 - No production deployment in scope — local Docker environment only
-- All `php artisan` commands run via Sail: `./vendor/bin/sail artisan ...` or `docker compose exec laravel.test php artisan ...`
-- All `composer` and `npm` commands run via Sail unless otherwise noted
+- All `php artisan` commands run via Docker: `docker compose exec app php artisan ...`
+- All `composer` and `npm` commands run inside the app container unless otherwise noted
 
 ### Branching Strategy
 
@@ -330,7 +330,7 @@ These are unresolved decisions that must be answered before or during Phase 1. E
 | # | Question | Impact | Recommended Default | Must Resolve By |
 |---|---|---|---|---|
 | ~~OQ-1~~ | ~~**Laravel 11 vs Laravel 12?**~~ | — | **RESOLVED:** Project runs on Laravel **13.x** (13.1.1). Breeze 2.4 and Horizon 5.x confirmed compatible. | ✅ Closed |
-| ~~OQ-2~~ | ~~**PHP 8.3 vs 8.4?**~~ | — | **RESOLVED:** Laravel Sail ships PHP **8.5.3** — running and confirmed. Version question is moot. | ✅ Closed |
+| ~~OQ-2~~ | ~~**PHP 8.3 vs 8.4?**~~ | — | **RESOLVED:** Project runs on PHP **8.3.x** (confirmed in Docker). This satisfies all package requirements and keeps Docker builds reliable. | ✅ Closed |
 | OQ-3 | **Imagick fallback to GD?** If Imagick fails to install in the Docker image, should we fall back to GD or treat it as a blocker? | Image quality, Dockerfile | Treat as **blocker** — resolve Imagick install, do not silently downgrade to GD | Phase 1 exit |
 | ~~OQ-4~~ | ~~Single queue vs three named queues?~~ | — | **RESOLVED:** Three named queues agreed in architecture. See Section 7. | ✅ Closed |
 | OQ-5 | **Horizon auth gate — who is admin?** `/horizon` requires an auth gate. No admin role exists in schema. | Route protection, seeder | Use **email allowlist** in `HorizonServiceProvider` seeded via `.env` | Phase 1 exit |
