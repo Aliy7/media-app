@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\InvalidMediaException;
+use App\Jobs\ProcessImageJob;
 use App\Models\Media;
 use App\Services\MediaUploadService;
 use Illuminate\Http\JsonResponse;
@@ -58,6 +59,42 @@ class MediaController extends Controller
         $media->delete();
 
         return response()->noContent();
+    }
+
+    public function retry(string $uuid): JsonResponse
+    {
+        $media = Media::where('uuid', $uuid)->firstOrFail();
+
+        $this->authorize('retry', $media);
+
+        abort_if($media->status !== Media::STATUS_FAILED, 422, 'Only failed media can be retried.');
+
+        $media->update([
+            'status'          => Media::STATUS_PENDING,
+            'processing_step' => null,
+            'progress'        => 0,
+            'error_message'   => null,
+        ]);
+
+        ProcessImageJob::dispatch($media)->delay(now()->addSeconds(5));
+
+        return response()->json(['uuid' => $media->uuid, 'status' => $media->status]);
+    }
+
+    public function thumbnail(string $uuid): \Illuminate\Http\Response
+    {
+        $media = Media::where('uuid', $uuid)->firstOrFail();
+
+        $this->authorize('view', $media);
+
+        $path = $media->outputs['thumbnail'] ?? null;
+        abort_if(! $path || ! Storage::disk('media')->exists($path), 404);
+
+        return response(
+            Storage::disk('media')->get($path),
+            200,
+            ['Content-Type' => Storage::disk('media')->mimeType($path) ?? 'image/jpeg']
+        );
     }
 
     private function deleteMediaFile(Media $media): void

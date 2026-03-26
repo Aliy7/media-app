@@ -28,7 +28,7 @@ class ImageProcessingService
             $contents   = Storage::disk($disk)->get($path);
             $outputPath = $this->outputPath($path, 'resized');
 
-            $image   = $this->manager->read($contents)->resize($width, $height);
+            $image   = $this->manager->read($contents)->scaleDown($width, $height);
             $encoded = $this->encodeForFormat($image, $path, quality: 90);
 
             Storage::disk($disk)->put($outputPath, $encoded);

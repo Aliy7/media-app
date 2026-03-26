@@ -22,7 +22,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/media/upload', MediaUploader::class)->name('media.upload');
     Route::post('/media', [MediaController::class, 'store'])->name('media.store');
     Route::get('/media/{uuid}', [MediaController::class, 'show'])->name('media.show');
+    Route::get('/media/{uuid}/thumbnail', [MediaController::class, 'thumbnail'])->name('media.thumbnail');
     Route::delete('/media/{uuid}', [MediaController::class, 'destroy'])->name('media.destroy');
+    Route::post('/media/{uuid}/retry', [MediaController::class, 'retry'])->name('media.retry');
 });
 
 require __DIR__.'/auth.php';

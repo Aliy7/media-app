@@ -33,4 +33,9 @@ class InvalidMediaException extends Exception
     {
         return new self("Image dimensions {$width}×{$height}px exceed the maximum 8000×8000px.");
     }
+
+    public static function unreadableFile(): self
+    {
+        return new self('The uploaded file could not be read as an image.');
+    }
 }

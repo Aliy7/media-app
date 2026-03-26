@@ -50,7 +50,12 @@ class MediaUploadService
         $media->status  = Media::STATUS_PENDING;
         $media->save();
 
-        ProcessImageJob::dispatch($media);
+        // 5-second delay gives the browser time to establish the Echo WebSocket
+        // subscription and authenticate the private channel before the first
+        // event fires. Soketi does not buffer past events — without this window,
+        // fast workers complete the entire job chain before the subscription is
+        // established and all broadcast events evaporate. See DECISIONS.md D-027.
+        ProcessImageJob::dispatch($media)->delay(now()->addSeconds(5));
 
         return $media;
     }
@@ -74,7 +79,7 @@ class MediaUploadService
         $imageSize = @getimagesize($file->getRealPath());
 
         if ($imageSize === false) {
-            return;
+            throw InvalidMediaException::unreadableFile();
         }
 
         [$width, $height] = $imageSize;
