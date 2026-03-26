@@ -38,6 +38,25 @@ class OptimizeImageJob implements ShouldQueue
         $this->onQueue('media-low');
     }
 
+    /** Horizon dashboard title — shows the original filename. */
+    public function displayName(): string
+    {
+        return 'OptimizeImageJob [' . $this->media->original_filename . ']';
+    }
+
+    /**
+     * Horizon searchable tags — filename, upload age, and UUID.
+     * `diffForHumans()` produces strings like "2 hours ago", "3 weeks ago".
+     */
+    public function tags(): array
+    {
+        return [
+            'file:'     . $this->media->original_filename,
+            'uploaded:' . $this->media->created_at->diffForHumans(),
+            'uuid:'     . $this->media->uuid,
+        ];
+    }
+
     /**
      * Delegate optimisation to ImageProcessingService, merge the output path
      * with previous step outputs, mark the record as completed, and fire

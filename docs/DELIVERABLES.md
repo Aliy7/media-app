@@ -52,27 +52,27 @@ The application runs from a single command on any machine with Docker installed.
 ### 2.4 Queue Processing
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
-| `ProcessImageJob` dispatched on upload | [ ] | Phase 3 | Step 4 |
-| Job chain: `ResizeImageJob → GenerateThumbnailJob → OptimizeImageJob` | [ ] | Phase 3 | Step 4 |
-| Multiple output dimensions generated per upload | [ ] | Phase 3 | Step 4 |
-| `Media` record status transitions correctly through each step | [ ] | Phase 3 | Step 4 |
-| Output files stored and paths recorded in database | [ ] | Phase 3 | Step 4 |
+| `ProcessImageJob` dispatched on upload | [x] | Phase 3 | Step 4 |
+| Job chain: `ResizeImageJob → GenerateThumbnailJob → OptimizeImageJob` | [x] | Phase 3 | Step 4 |
+| Multiple output dimensions generated per upload | [x] | Phase 3 | Step 4 |
+| `Media` record status transitions correctly through each step | [x] | Phase 3 | Step 4 |
+| Output files stored and paths recorded in database | [x] | Phase 3 | Step 4 |
 
 ### 2.5 Queue Configuration
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
 | Redis as queue driver | [x] | Phase 1 | Step 5 |
-| Named queues with priorities: `media-critical`, `media-standard`, `media-low` | [ ] | Phase 3 | Step 5 |
-| Jobs configured with retry attempts and exponential backoff | [ ] | Phase 3 | Step 6 |
-| Job timeout configured | [ ] | Phase 3 | Step 5 |
+| Named queues with priorities: `media-critical`, `media-standard`, `media-low` | [x] | Phase 3 | Step 5 |
+| Jobs configured with retry attempts and exponential backoff | [x] | Phase 3 | Step 6 |
+| Job timeout configured | [x] | Phase 3 | Step 5 |
 | Laravel Horizon supervising workers | [x] | Phase 1 | Step 5 |
 
 ### 2.6 Failed Job Handling
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
-| Invalid/corrupt file triggers job failure | [ ] | Phase 3 | Step 6 |
-| `Media` record updated with `failed` status and error message | [ ] | Phase 3 | Step 6 |
-| Failed job visible in Horizon dashboard | [ ] | Phase 3 | Step 6 |
+| Invalid/corrupt file triggers job failure | [x] | Phase 3 | Step 6 |
+| `Media` record updated with `failed` status and error message | [x] | Phase 3 | Step 6 |
+| Failed job visible in Horizon dashboard | [x] | Phase 3 | Step 6 |
 | User notified of failure via real-time broadcast | [ ] | Phase 4 | Step 6 |
 
 ### 2.7 Real-Time Broadcasting
@@ -97,29 +97,30 @@ The application runs from a single command on any machine with Docker installed.
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
 | Accessible at `/horizon` (authenticated) | [x] | Phase 1 | Step 5 |
-| Real-time job throughput visible | [ ] | Phase 3 | Step 5 |
-| Failed jobs visible with exception details | [ ] | Phase 3 | Step 6 |
-| Queue metrics: jobs per minute, wait time, runtime | [ ] | Phase 3 | Step 5 |
+| Real-time job throughput visible | [x] | Phase 3 | Step 5 |
+| Failed jobs visible with exception details | [x] | Phase 3 | Step 6 |
+| Queue metrics: jobs per minute, wait time, runtime | [x] | Phase 3 | Step 5 |
+| Job display names show filename + upload timestamp | [x] | Phase 3 | Step 5 |
 
 ### 2.10 OOP & MVC Architecture
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
 | Controllers contain no business logic | [x] | Phase 2 | Step 7 |
 | `MediaUploadService` encapsulates upload logic | [x] | Phase 2 | Step 7 |
-| `ImageProcessingService` encapsulates Intervention Image operations | [ ] | Phase 3 | Step 7 |
-| Each job class has a single processing responsibility | [ ] | Phase 3 | Step 7 |
+| `ImageProcessingService` encapsulates Intervention Image operations | [x] | Phase 3 | Step 7 |
+| Each job class has a single processing responsibility | [x] | Phase 3 | Step 7 |
 | Events carry data only, no logic | [ ] | Phase 4 | Step 7 |
 | Listeners handle broadcasting only, no domain logic | [ ] | Phase 4 | Step 7 |
 
 ### 2.11 Testing
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
-| Unit tests: service classes, job classes, model relationships | [ ] | Phase 2–4 | — |
+| Unit tests: service classes, job classes, model relationships | [x] | Phase 2–3 | — |
 | Feature tests: all HTTP endpoints | [x] | Phase 2 | — |
 | Auth tests: protected routes reject unauthenticated requests | [x] | Phase 2 | — |
-| Queue tests: `Queue::fake()` asserts jobs dispatched correctly | [ ] | Phase 3 | — |
-| Event tests: `Event::fake()` asserts events fired from correct job steps | [ ] | Phase 4 | — |
-| All tests pass: `php artisan test` | [ ] | Phase 5 | — |
+| Queue tests: `Queue::fake()` asserts jobs dispatched correctly | [x] | Phase 3 | — |
+| Event tests: `Event::fake()` asserts events fired from correct job steps | [x] | Phase 3 | — |
+| All tests pass: `php artisan test` | [x] | Phase 3 | — |
 
 ### 2.12 Documentation
 | Deliverable | Done | Phase | Demo Step |

@@ -414,3 +414,63 @@ globally to all tests. All 25 tests pass after this change.
 
 **Breeze version at time of incident:** `laravel/breeze v2.4.1` (2026-03-10)
 **Laravel framework version:** `^13.0`
+
+---
+
+## Part 4 — Phase 3 Implementation Decisions (2026-03-26)
+
+### D-005 · `readonly` removed from `ProcessImageJob::$media`
+
+**Context:** During Phase 3.4, the `$media` property on `ProcessImageJob` was
+changed from `private readonly` to `public readonly` so feature tests could
+assert `$job->media->is($media)` inside `Queue::assertPushed()` closures.
+When real uploads were processed via Horizon (PHP 8.3), all `ProcessImageJob`
+executions failed with:
+
+```
+Error: Typed property App\Jobs\ProcessImageJob::$media
+       must not be accessed before initialization
+```
+
+**Root cause:** `SerializesModels` serialises model instances to a
+`ModelIdentifier` placeholder (`__sleep`), then restores them in `__wakeup`.
+In PHP 8.3 the `unserialize()` engine initialises a `readonly` property once
+(to the placeholder). `__wakeup` then attempts to replace it with the live
+Eloquent model — PHP 8.3 rejects this second assignment on a `readonly`
+property, leaving it unresolved.
+
+**Decision:** Remove `readonly` from the declaration — `public Media $media`.
+`public` visibility is preserved so tests can inspect the property; the
+`readonly` guarantee is unnecessary for a short-lived queue job object.
+
+**Rejected alternative:** Implementing `__unserialize()` on the job — adds
+boilerplate to every serialised job class; the simpler fix is sufficient.
+
+**Files changed:** `app/Jobs/ProcessImageJob.php`
+
+---
+
+### D-006 · `Bus::batch()` jobs require explicit `->onQueue()` at the call site
+
+**Context:** `ResizeImageJob` and `GenerateThumbnailJob` each call
+`$this->onQueue(...)` in their constructors. When dispatched standalone they
+land on the correct queues. When dispatched inside `Bus::batch([...])` in
+`ProcessImageJob::handle()`, both arrived on the `default` queue.
+
+**Root cause:** Laravel's batch dispatcher does not propagate the queue name
+set in a job's constructor when wrapping jobs into a `BatchedJob`. The queue
+must be set explicitly on each job instance before it is passed to the array.
+
+**Decision:** Chain `->onQueue()` at the `Bus::batch()` call site:
+
+```php
+Bus::batch([
+    (new ResizeImageJob(...))->onQueue('media-standard'),
+    (new GenerateThumbnailJob(...))->onQueue('media-critical'),
+])
+```
+
+The constructor `onQueue()` calls are kept as self-documentation for standalone
+dispatch, but the batch call site is now the authoritative assignment.
+
+**Files changed:** `app/Jobs/ProcessImageJob.php`

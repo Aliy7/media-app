@@ -43,6 +43,25 @@ class ResizeImageJob implements ShouldQueue
         $this->onQueue('media-standard');
     }
 
+    /** Horizon dashboard title — shows the original filename. */
+    public function displayName(): string
+    {
+        return 'ResizeImageJob [' . $this->media->original_filename . ']';
+    }
+
+    /**
+     * Horizon searchable tags — filename, upload age, and UUID.
+     * `diffForHumans()` produces strings like "2 hours ago", "3 weeks ago".
+     */
+    public function tags(): array
+    {
+        return [
+            'file:'     . $this->media->original_filename,
+            'uploaded:' . $this->media->created_at->diffForHumans(),
+            'uuid:'     . $this->media->uuid,
+        ];
+    }
+
     /**
      * Delegate resize to ImageProcessingService, persist the output path,
      * advance progress, and fire MediaStepCompleted.

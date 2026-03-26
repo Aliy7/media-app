@@ -34,7 +34,7 @@ class ProcessImageJob implements ShouldQueue
     public int $timeout = 120;
 
     public function __construct(
-        public readonly Media $media,
+        public Media $media,
         private readonly int   $width           = 1920,
         private readonly int   $height          = 1080,
         private readonly int   $thumbnailWidth  = 0,
@@ -42,6 +42,25 @@ class ProcessImageJob implements ShouldQueue
     ) {
         // Orchestration runs on standard priority
         $this->onQueue('media-standard');
+    }
+
+    /** Horizon dashboard title — shows the original filename. */
+    public function displayName(): string
+    {
+        return 'ProcessImageJob [' . $this->media->original_filename . ']';
+    }
+
+    /**
+     * Horizon searchable tags — filename, upload age, and UUID.
+     * `diffForHumans()` produces strings like "2 hours ago", "3 weeks ago".
+     */
+    public function tags(): array
+    {
+        return [
+            'file:'     . $this->media->original_filename,
+            'uploaded:' . $this->media->created_at->diffForHumans(),
+            'uuid:'     . $this->media->uuid,
+        ];
     }
 
     /**
@@ -58,8 +77,8 @@ class ProcessImageJob implements ShouldQueue
         $media = $this->media;
 
         Bus::batch([
-            new ResizeImageJob($media, $this->width, $this->height),
-            new GenerateThumbnailJob($media, $this->thumbnailWidth, $this->thumbnailHeight),
+            (new ResizeImageJob($media, $this->width, $this->height))->onQueue('media-standard'),
+            (new GenerateThumbnailJob($media, $this->thumbnailWidth, $this->thumbnailHeight))->onQueue('media-critical'),
         ])
         ->then(fn (Batch $batch) => OptimizeImageJob::dispatch($media))
         ->catch(function (Batch $batch, \Throwable $e) use ($media) {

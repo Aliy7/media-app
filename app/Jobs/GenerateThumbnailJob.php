@@ -44,6 +44,25 @@ class GenerateThumbnailJob implements ShouldQueue
         $this->onQueue('media-critical');
     }
 
+    /** Horizon dashboard title — shows the original filename. */
+    public function displayName(): string
+    {
+        return 'GenerateThumbnailJob [' . $this->media->original_filename . ']';
+    }
+
+    /**
+     * Horizon searchable tags — filename, upload age, and UUID.
+     * `diffForHumans()` produces strings like "2 hours ago", "3 weeks ago".
+     */
+    public function tags(): array
+    {
+        return [
+            'file:'     . $this->media->original_filename,
+            'uploaded:' . $this->media->created_at->diffForHumans(),
+            'uuid:'     . $this->media->uuid,
+        ];
+    }
+
     /**
      * Delegate thumbnail generation to ImageProcessingService, persist the
      * output path alongside any previous step outputs, advance progress,

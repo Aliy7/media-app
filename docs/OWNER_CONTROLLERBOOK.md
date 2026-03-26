@@ -20,9 +20,9 @@
 ## CURRENT STATUS
 
 ```
-Phase:        [ 0 — COMPLETE ]  →  [ 1 — COMPLETE ]  →  [ 2 — READY ]  →  [ 3 ]  →  [ 4 ]  →  [ 5 ]  →  [ 6 ]
-Last sign-off: Phase 1 — 2026-03-24
-Next gate:     Phase 2 exit review
+Phase:        [ 0 — COMPLETE ]  →  [ 1 — COMPLETE ]  →  [ 2 — COMPLETE ]  →  [ 3 — IN REVIEW ]  →  [ 4 ]  →  [ 5 ]  →  [ 6 ]
+Last sign-off: Phase 2 — 2026-03-24 (verbal, exit criteria met)
+Next gate:     Phase 3 exit review — awaiting owner sign-off
 ```
 
 > **Update this block at the start of every session.**
@@ -239,11 +239,22 @@ curl -X POST http://localhost/media \
 
 ### Phase 3 Exit Gate
 
-- [ ] Upload endpoint validates correctly (rejects wrong type/size)
-- [ ] Successful upload dispatches job to correct queue
-- [ ] Tests use `Queue::fake()` — no real queue processing
-- [ ] Event fired on dispatch confirmed with `Event::fake()`
-- [ ] No processing logic in this phase
+- [x] Upload endpoint validates correctly (rejects wrong type/size) — **confirmed 2026-03-26**
+- [x] Successful upload dispatches `ProcessImageJob` to `media-standard` queue — **confirmed 2026-03-26**
+- [x] Batch jobs on correct queues: Resize→`media-standard`, Thumbnail→`media-critical`, Optimize→`media-low` — **confirmed 2026-03-26**
+- [x] Tests use `Queue::fake()` — `MediaUploadTest` setUp + `MediaUploadServiceTest` setUp — **confirmed 2026-03-26**
+- [x] Events fired and asserted with `Event::fake()` on all four job classes — **confirmed 2026-03-26**
+- [x] `failed()` implemented on all jobs: status→`failed`, error message stored — **confirmed 2026-03-26**
+- [x] Status transitions: `pending → processing → completed` verified end-to-end — **confirmed 2026-03-26**
+- [x] Output files on disk, paths recorded in `media.outputs` — **confirmed 2026-03-26**
+- [x] Horizon dashboard: clean metrics, correct display names with filename and upload timestamp — **confirmed 2026-03-26**
+- [x] All 107 tests pass — **confirmed 2026-03-26**
+
+**Note — doc correction:** The original gate read "No processing logic in this phase." This was a copy error from Phase 2 notes. Phase 3 is the processing phase — `ImageProcessingService` and the full job chain are Phase 3 deliverables per `IMPLEMENTATION_PLAN.md §3`.
+
+**Known decisions logged:**
+- D-5: `public readonly Media $media` removed (PHP 8.3 + `SerializesModels` incompatibility) — see `DECISIONS.md`
+- D-6: `Bus::batch()` jobs require explicit `->onQueue()` at call site — constructor `onQueue()` ignored by batch dispatcher
 
 **Owner sign-off:** `[ ] Signed off — Date: ____________`
 
@@ -399,6 +410,8 @@ and its output. Do not skip any step.
 | 2 | 2026-03-23 | Tech stack per PROJECT_SPEC.md | Agreed in Phase 0 | — |
 | 3 | 2026-03-24 | PHP 8.3 used instead of 8.5 (D-025) | PHP 8.5 Docker image broke ext-install tooling | Stay on 8.5 |
 | 4 | 2026-03-24 | CSRF fix in TestCase.php not bootstrap/app.php (D-026) | Laravel 13 renamed middleware; bootstrap approach unreliable at boot time | bootstrap/app.php withMiddleware callback |
+| 5 | 2026-03-26 | `readonly` removed from `ProcessImageJob::$media` (D-005) | PHP 8.3 + SerializesModels: __wakeup cannot re-assign readonly property after unserialize() init | Implement `__unserialize()` on job |
+| 6 | 2026-03-26 | `Bus::batch()` jobs use explicit `->onQueue()` at call site (D-006) | Batch dispatcher ignores queue set in constructor; jobs landed on `default` | Accept default queue behaviour |
 
 ---
 
