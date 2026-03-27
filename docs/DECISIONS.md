@@ -995,3 +995,200 @@ be confused — the docblocks on each method explain the scope.
 **Accepted trade-off:** Clarity of naming is sacrificed temporarily in favour of
 keeping the hardening-phase diff focused on behaviour, not refactoring. The rename
 is logged here so it is not forgotten.
+
+---
+
+## Part 10 — Phase 5.3: Security Review
+
+### D-042 · CSRF protection: asserting the middleware stack, not a 419 HTTP response
+**Date:** 2026-03-26
+
+**Context:** The three CSRF tests initially used `withMiddleware()` + `actingAs($user)`
+to re-enable the `PreventRequestForgery` guard and attempted to assert that a
+tokenless POST returned HTTP 419.
+
+**Problem discovered:** Laravel's test HTTP client shares the session that
+`actingAs()` establishes. That session object already contains a valid `_token`
+(created by `StartSession`), and the test client copies it into the request
+headers automatically when `withMiddleware()` is active. The CSRF guard therefore
+sees a matching token and passes the request — returning 201, not 419 — even
+though no token was supplied by the test author.
+
+**Decision:** Replace the per-route 419 assertions with two complementary checks:
+1. Assert that `PreventRequestForgery::class` is present in the `web` middleware
+   group — proves the guard is wired to the global stack.
+2. Assert that each mutating route (`store`, `destroy`, `retry`) declares `web`
+   in its middleware — proves the guard applies to those specific routes.
+
+**Why this is sufficient:** The Laravel framework owns `PreventRequestForgery`;
+it is not our code and does not need integration-test coverage here. What _is_
+our responsibility is confirming that our routes sit inside the group that
+activates the guard. Checking the middleware registration is a direct,
+deterministic assertion of that property.
+
+**Alternatives rejected:** Using `withoutSession()` to suppress the auto-token
+injection was considered but fragile — it relies on undocumented test-client
+internals. Checking for 419 from an anonymous (non-`actingAs`) request would
+prove CSRF fires but would conflate CSRF with auth (the route also requires a
+logged-in user, so the real 401 would arrive before 419).
+
+---
+
+### D-043 · XSS: Blade's auto-escaping is the control; `stored_filename` is a separate concern
+**Date:** 2026-03-26
+
+**Context:** Phase 5.3 covers two distinct XSS risks that share a filename but
+need different tests.
+
+**Risk 1 — storage:** Does the service mutate or sanitise the client-supplied
+filename before writing it to the DB? It must not — escaping belongs at render
+time, not at storage time. Sanitising on write means the stored value diverges
+from what the user uploaded, which breaks audit trails and download filenames.
+The test seeds a record directly with `original_filename = '<script>alert(1)</script>.jpg'`
+and reads it back, confirming round-trip fidelity.
+
+**Why not upload a fake file with that name:** `UploadedFile::fake()->image()`
+creates a real temp file on the OS filesystem. The OS (or PHP's temp-file layer)
+silently strips angle brackets from the filename. The test would always pass
+vacuously because the XSS payload is dropped before the application ever sees it.
+
+**Risk 2 — API response:** Does `MediaController@show` return `original_filename`
+as raw HTML in the JSON body? It must not. The test asserts that the JSON string
+`<script>alert(1)</script>` does not appear literally in the response — it may
+appear URL-encoded or escaped, but not as raw executable markup. Covered by
+`test_xss_payload_in_original_filename_is_escaped_in_api_response`.
+
+**Blade rendering:** Blade's `{{ }}` syntax HTML-encodes output by default. The
+`{!! !!}` syntax (raw output) was found on one Blade expression in
+`media-uploader.blade.php` (`$stepLabel`) and was corrected to `{{ }}` during
+the Phase 5.3 audit. No other unescaped output was found.
+
+---
+
+### D-044 · Rate limiting on upload (10/min) and retry (5/min)
+**Date:** 2026-03-26
+
+**Context:** Without rate limiting, an authenticated user could flood the upload
+endpoint and create arbitrarily many queued jobs, consuming queue workers, disk,
+and DB rows without bound.
+
+**Decision:** Apply Laravel's built-in `throttle` middleware:
+- `POST /media` — `throttle:10,1` (10 requests per minute per user)
+- `POST /media/{uuid}/retry` — `throttle:5,1` (5 retries per minute per user)
+
+**Rationale for limits:** 10 uploads/min covers normal interactive use (bulk
+drag-and-drop sessions). 5 retries/min is deliberately lower — retries indicate
+processing failure, so a burst of retries likely signals a systematic problem
+that more retries will not fix; throttling gives the queue time to recover.
+
+**Keyed by user ID:** Laravel's default throttle key uses `auth()->id()` for
+authenticated routes, so limits are per-user, not per-IP. This prevents a
+single user from consuming shared worker capacity.
+
+**Test approach:** `RateLimiter::clear()` is called before each rate-limit test
+to prevent bleed from prior test runs. The 11th upload and 6th retry assert HTTP 429.
+
+---
+
+### D-045 · SQL injection: Eloquent parameter binding makes route-segment injection impossible
+**Date:** 2026-03-26
+
+**Context:** All resource routes use a UUID path segment (`/media/{uuid}`). A
+classic injection payload like `'; DROP TABLE media; --` was submitted as the
+UUID path segment.
+
+**Finding:** Eloquent's `where('uuid', $uuid)` uses PDO prepared statements.
+The segment is always a bound parameter, never string-interpolated into SQL.
+The query returns zero rows, Eloquent calls `firstOrFail()`, and the controller
+returns 404 — no DB error, no table drop, no data leakage.
+
+**Test:** `test_sql_injection_in_uuid_path_returns_404_not_error` submits the
+payload and asserts (a) HTTP 404, (b) `assertDatabaseCount('media', 0)` — the
+table still exists and is empty.
+
+---
+
+### D-046 · Private broadcast channel auth enforces ownership
+**Date:** 2026-03-26
+
+**Context:** Each media item broadcasts on `private-media.{uuid}`. The
+`/broadcasting/auth` endpoint must refuse auth tokens for channels belonging to
+another user.
+
+**Implementation:** `routes/channels.php` registers a closure for
+`private-media.{uuid}` that loads the Media record by UUID and returns
+`$user->id === $media->user_id`. A `false` return causes the broadcast manager
+to respond 403.
+
+**Test complication:** PHPUnit's default broadcaster is the `null` driver.
+`channels.php` registers closures on the driver that is active at boot time
+(null). `/broadcasting/auth` runs against whichever driver is current at
+request time. If they differ, the auth endpoint has no registered callbacks
+and always returns 403 — meaning even owner requests fail.
+
+**Fix:** `SecurityTest::setUp()` and `BroadcastChannelTest::setUp()` both copy
+the null-driver channel registrations onto the pusher driver before switching
+`broadcasting.default` to `pusher`. This ensures the real ownership callback
+runs on the test `/broadcasting/auth` request.
+
+---
+
+### D-047 · File format security: MIME detection from file content, not extension
+**Date:** 2026-03-26
+
+**Context:** A malicious actor could rename a PHP script or PDF to `photo.jpg`
+and attempt to store it. Trusting the file extension or the client-declared
+`Content-Type` would allow this.
+
+**Implementation:** Laravel's `mimetypes:` validation rule calls
+`UploadedFile::getMimeType()`, which invokes PHP's `finfo_file()` on the actual
+file bytes — the same mechanism as the `file` command on Linux. The fixture
+`tests/fixtures/pdf-disguised-as-jpg.jpg` contains a real PDF header (`%PDF-1.4`);
+`finfo` correctly returns `application/pdf`, the validator rejects it, and the
+upload returns 422 with no DB record created.
+
+**Test coverage:** Three tests in `SecurityTest` and one in `MediaEdgeCaseTest`:
+- PDF with `.jpg` extension rejected (both test classes, using the same fixture)
+- `application/octet-stream` file rejected regardless of extension
+- Path-traversal filename (`../../etc/passwd.jpg`) accepted for the content but
+  the stored filename is always `{uuid}.{extension}`, never user-supplied path
+  components — asserted by regex `/^[0-9a-f\-]{36}\.[a-z]+$/`.
+
+---
+
+### D-048 · Livewire `statusFilter` whitelisted via `updatedStatusFilter` hook
+**Date:** 2026-03-26
+
+**Context:** Livewire exposes public component properties to the browser. A user
+can craft a WebSocket message that sets `statusFilter` to an arbitrary string
+(e.g., `'; DROP TABLE media; --`). Even though Eloquent uses parameterised
+queries, passing a non-enum value to `where('status', $this->statusFilter)` is
+unnecessary attack surface.
+
+**Implementation:** `MediaLibrary` declares `updatedStatusFilter(string $value)`
+— a Livewire lifecycle hook called automatically after any property update.
+If the new value is not in the whitelist `['all', 'pending', 'processing',
+'completed', 'failed']`, it is reset to `'all'` before the next render.
+
+**Test:** `test_invalid_status_filter_is_silently_reset_to_all` sets the
+property via `$component->set()` and asserts it reads back as `'all'`. All five
+valid values are also asserted to pass through unchanged.
+
+---
+
+### D-049 · Information disclosure: `stored_filename` hidden from API response
+**Date:** 2026-03-26
+
+**Context:** `stored_filename` is the UUID-based path used on the server
+filesystem. Returning it in API responses would reveal the internal storage
+structure and enable a user to guess or probe other file paths.
+
+**Implementation:** `MediaController@show` calls `$media->makeHidden(['stored_filename'])`
+before serialising to JSON. The field is present in the DB and on the Eloquent
+object (needed for delete and storage operations) but is removed from the
+outgoing JSON.
+
+**Test:** `test_show_response_does_not_expose_stored_filename` asserts the key
+is absent from `$response->json()`. A complementary test asserts that the
+expected public fields (`uuid`, `status`, `original_filename`, `mime_type`) are
+all present — confirming that `makeHidden` did not strip too much.

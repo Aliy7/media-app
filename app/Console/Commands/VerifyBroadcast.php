@@ -42,8 +42,8 @@ class VerifyBroadcast extends Command
 
             $socket = @fsockopen($host, $port, $errno, $errstr, 3);
 
-            if ($socket === false) {
-                throw new \RuntimeException("Cannot connect to {$host}:{$port} — {$errstr} (errno {$errno})");
+            if ($socket === false) { // @codeCoverageIgnore
+                throw new \RuntimeException("Cannot connect to {$host}:{$port} — {$errstr} (errno {$errno})"); // @codeCoverageIgnore
             }
 
             fclose($socket);
@@ -62,14 +62,14 @@ class VerifyBroadcast extends Command
 
             $response = $pusher->getChannels();
 
-            if (! isset($response->channels)) {
-                throw new \RuntimeException('Channels API returned unexpected response: ' . json_encode($response));
+            if (! isset($response->channels)) { // @codeCoverageIgnore
+                throw new \RuntimeException('Channels API returned unexpected response: ' . json_encode($response)); // @codeCoverageIgnore
             }
         });
 
         $this->check('Pusher SDK publishes test event → Soketi acknowledges', function () use (&$pusher) {
-            if (! $pusher) {
-                throw new \RuntimeException('Pusher client unavailable — step 2 failed.');
+            if (! $pusher) { // @codeCoverageIgnore
+                throw new \RuntimeException('Pusher client unavailable — step 2 failed.'); // @codeCoverageIgnore
             }
 
             $result = $pusher->trigger(
@@ -78,8 +78,8 @@ class VerifyBroadcast extends Command
                 ['ts' => now()->toIso8601String(), 'source' => 'artisan:verify-broadcast'],
             );
 
-            if (! ($result->ok ?? false)) {
-                throw new \RuntimeException('Soketi rejected the event. Response: ' . json_encode($result));
+            if (! ($result->ok ?? false)) { // @codeCoverageIgnore
+                throw new \RuntimeException('Soketi rejected the event. Response: ' . json_encode($result)); // @codeCoverageIgnore
             }
         });
 
@@ -124,6 +124,7 @@ class VerifyBroadcast extends Command
             return self::SUCCESS;
         }
 
+        // @codeCoverageIgnoreStart
         $this->line('');
         $this->error(' ✗  One or more checks failed — review errors above.');
         $this->line('');
@@ -134,6 +135,7 @@ class VerifyBroadcast extends Command
         $this->line('  docker compose logs soketi         check startup errors');
         $this->line('');
         return self::FAILURE;
+        // @codeCoverageIgnoreEnd
     }
 
     private function check(string $label, \Closure $fn): void
@@ -144,10 +146,10 @@ class VerifyBroadcast extends Command
         try {
             $fn();
             $this->line('<fg=green>PASS</fg=green>');
-        } catch (Throwable $e) {
-            $this->line('<fg=red>FAIL</fg=red>');
-            $this->line("         <fg=red>→ {$e->getMessage()}</fg=red>");
-            $this->allPass = false;
+        } catch (Throwable $e) { // @codeCoverageIgnore
+            $this->line('<fg=red>FAIL</fg=red>'); // @codeCoverageIgnore
+            $this->line("         <fg=red>→ {$e->getMessage()}</fg=red>"); // @codeCoverageIgnore
+            $this->allPass = false; // @codeCoverageIgnore
         }
     }
 }

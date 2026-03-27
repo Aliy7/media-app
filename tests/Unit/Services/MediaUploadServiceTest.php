@@ -124,4 +124,46 @@ class MediaUploadServiceTest extends TestCase
 
         $this->assertDatabaseCount('media', 0);
     }
+
+    public function test_storage_failure_throws_invalid_media_exception(): void
+    {
+        $user = User::factory()->create();
+        $file = UploadedFile::fake()->image('photo.jpg', 800, 600);
+
+        // Make the storage disk return false for putFileAs while leaving MIME/dimension
+        // checks (which use the real temp file, not Storage) unaffected.
+        $diskMock = $this->createMock(\Illuminate\Contracts\Filesystem\Filesystem::class);
+        $diskMock->method('putFileAs')->willReturn(false);
+
+        \Illuminate\Support\Facades\Storage::shouldReceive('disk')
+            ->with('media')
+            ->andReturn($diskMock);
+
+        $this->expectException(InvalidMediaException::class);
+        $this->expectExceptionMessage('Failed to store the uploaded file.');
+
+        $this->service->handle($file, $user);
+    }
+
+    public function test_unreadable_image_content_throws_invalid_media_exception(): void
+    {
+        $user = User::factory()->create();
+
+        // JPEG magic bytes (FF D8 FF) that finfo detects as image/jpeg, but the
+        // structure is too corrupt for getimagesize() to parse — returns false.
+        $jpegMagic = "\xFF\xD8\xFF" . str_repeat("\x00", 100);
+        $tmp       = tempnam(sys_get_temp_dir(), 'mediaflow_corrupt_');
+        file_put_contents($tmp, $jpegMagic);
+
+        $file = new UploadedFile($tmp, 'corrupt.jpg', 'image/jpeg', null, true);
+
+        $this->expectException(InvalidMediaException::class);
+        $this->expectExceptionMessage('The uploaded file could not be read as an image.');
+
+        try {
+            $this->service->handle($file, $user);
+        } finally {
+            file_exists($tmp) && unlink($tmp);
+        }
+    }
 }

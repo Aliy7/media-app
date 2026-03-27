@@ -146,4 +146,28 @@ class GenerateThumbnailJobTest extends TestCase
                 && $event->errorMessage === 'Thumbnail error';
         });
     }
+
+    // -----------------------------------------------------------------------
+    // displayName() and tags()
+    // -----------------------------------------------------------------------
+
+    public function test_display_name_includes_original_filename(): void
+    {
+        $media = Media::factory()->create(['original_filename' => 'photo.jpg']);
+
+        $name = (new GenerateThumbnailJob($media))->displayName();
+
+        $this->assertStringContainsString('photo.jpg', $name);
+        $this->assertStringContainsString('GenerateThumbnailJob', $name);
+    }
+
+    public function test_tags_include_filename_and_uuid(): void
+    {
+        $media = Media::factory()->create(['original_filename' => 'photo.jpg']);
+        $tags  = (new GenerateThumbnailJob($media))->tags();
+
+        $this->assertTrue(collect($tags)->contains(fn ($t) => str_contains($t, 'photo.jpg')));
+        $this->assertTrue(collect($tags)->contains(fn ($t) => str_contains($t, $media->uuid)));
+        $this->assertTrue(collect($tags)->contains(fn ($t) => str_starts_with($t, 'uploaded:')));
+    }
 }

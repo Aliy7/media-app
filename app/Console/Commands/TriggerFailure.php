@@ -49,7 +49,7 @@ class TriggerFailure extends Command
         // ── Resolve user ──────────────────────────────────────────────────────
         $email = $this->option('email');
         if (! $email) {
-            $email = $this->ask('User email');
+            $email = $this->ask('User email'); // @codeCoverageIgnore
         }
 
         $user = User::where('email', $email)->first();

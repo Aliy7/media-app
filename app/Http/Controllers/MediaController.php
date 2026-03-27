@@ -45,7 +45,7 @@ class MediaController extends Controller
 
         $this->authorize('view', $media);
 
-        return response()->json($media);
+        return response()->json($media->makeHidden(['stored_filename']));
     }
 
     public function destroy(string $uuid): Response

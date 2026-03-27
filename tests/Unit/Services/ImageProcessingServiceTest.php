@@ -171,6 +171,58 @@ class ImageProcessingServiceTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // GIF and WebP format handling
+    // -----------------------------------------------------------------------
+
+    public function test_resize_preserves_format_for_gif(): void
+    {
+        $tmp = $this->generateGif(400, 300);
+        Storage::disk('media')->put('fixture.gif', file_get_contents($tmp));
+        unlink($tmp);
+
+        $outputPath = $this->service->resize('fixture.gif', 200, 150, 'media');
+
+        $this->assertStringEndsWith('.gif', $outputPath);
+        Storage::disk('media')->assertExists($outputPath);
+    }
+
+    public function test_resize_preserves_format_for_webp(): void
+    {
+        $tmp = $this->generateWebp(400, 300);
+        Storage::disk('media')->put('fixture.webp', file_get_contents($tmp));
+        unlink($tmp);
+
+        $outputPath = $this->service->resize('fixture.webp', 200, 150, 'media');
+
+        $this->assertStringEndsWith('.webp', $outputPath);
+        Storage::disk('media')->assertExists($outputPath);
+    }
+
+    public function test_optimize_preserves_format_for_gif(): void
+    {
+        $tmp = $this->generateGif(400, 300);
+        Storage::disk('media')->put('fixture.gif', file_get_contents($tmp));
+        unlink($tmp);
+
+        $outputPath = $this->service->optimize('fixture.gif', 'media');
+
+        $this->assertStringEndsWith('.gif', $outputPath);
+        Storage::disk('media')->assertExists($outputPath);
+    }
+
+    public function test_optimize_preserves_format_for_webp(): void
+    {
+        $tmp = $this->generateWebp(400, 300);
+        Storage::disk('media')->put('fixture.webp', file_get_contents($tmp));
+        unlink($tmp);
+
+        $outputPath = $this->service->optimize('fixture.webp', 'media');
+
+        $this->assertStringEndsWith('.webp', $outputPath);
+        Storage::disk('media')->assertExists($outputPath);
+    }
+
+    // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
 
@@ -197,6 +249,28 @@ class ImageProcessingServiceTest extends TestCase
         $bg  = imagecolorallocate($img, 80, 200, 120);
         imagefill($img, 0, 0, $bg);
         imagepng($img, $tmp);
+        imagedestroy($img);
+        return $tmp;
+    }
+
+    private function generateGif(int $width, int $height): string
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'mediaflow_') . '.gif';
+        $img = imagecreatetruecolor($width, $height);
+        $bg  = imagecolorallocate($img, 80, 200, 120);
+        imagefill($img, 0, 0, $bg);
+        imagegif($img, $tmp);
+        imagedestroy($img);
+        return $tmp;
+    }
+
+    private function generateWebp(int $width, int $height): string
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'mediaflow_') . '.webp';
+        $img = imagecreatetruecolor($width, $height);
+        $bg  = imagecolorallocate($img, 100, 150, 200);
+        imagefill($img, 0, 0, $bg);
+        imagewebp($img, $tmp);
         imagedestroy($img);
         return $tmp;
     }

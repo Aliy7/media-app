@@ -28,6 +28,7 @@ class MediaUploadService
     {
         $this->validateMimeType($file);
         $this->validateFileSize($file);
+        $this->validateFilename($file);
         $this->validateDimensions($file);
 
         $uuid            = Str::uuid()->toString();
@@ -84,6 +85,15 @@ class MediaUploadService
     {
         Storage::disk('media')->delete($media->stored_filename);
         $media->delete();
+    }
+
+    private function validateFilename(UploadedFile $file): void
+    {
+        $length = strlen($file->getClientOriginalName());
+
+        if ($length > 255) {
+            throw InvalidMediaException::filenameTooLong($length);
+        }
     }
 
     private function validateMimeType(UploadedFile $file): void

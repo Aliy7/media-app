@@ -38,4 +38,9 @@ class InvalidMediaException extends Exception
     {
         return new self('The uploaded file could not be read as an image.');
     }
+
+    public static function filenameTooLong(int $length): self
+    {
+        return new self("Filename ({$length} characters) exceeds the 255-character limit.");
+    }
 }

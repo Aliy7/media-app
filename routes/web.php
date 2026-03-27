@@ -20,11 +20,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::get('/media/upload', MediaUploader::class)->name('media.upload');
-    Route::post('/media', [MediaController::class, 'store'])->name('media.store');
+    Route::post('/media', [MediaController::class, 'store'])->middleware('throttle:10,1')->name('media.store');
     Route::get('/media/{uuid}', [MediaController::class, 'show'])->name('media.show');
     Route::get('/media/{uuid}/thumbnail', [MediaController::class, 'thumbnail'])->name('media.thumbnail');
     Route::delete('/media/{uuid}', [MediaController::class, 'destroy'])->name('media.destroy');
-    Route::post('/media/{uuid}/retry', [MediaController::class, 'retry'])->name('media.retry');
+    Route::post('/media/{uuid}/retry', [MediaController::class, 'retry'])->middleware('throttle:5,1')->name('media.retry');
 });
 
 require __DIR__.'/auth.php';

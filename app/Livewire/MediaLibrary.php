@@ -59,6 +59,13 @@ class MediaLibrary extends Component
         unset($this->liveUpdates[$uuid]);
     }
 
+    public function updatedStatusFilter(string $value): void
+    {
+        if (! in_array($value, ['all', 'pending', 'processing', 'completed', 'failed'], true)) {
+            $this->statusFilter = 'all';
+        }
+    }
+
     public function toggleSort(): void
     {
         $this->sortOrder = $this->sortOrder === 'desc' ? 'asc' : 'desc';

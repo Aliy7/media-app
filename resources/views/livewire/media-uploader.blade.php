@@ -148,15 +148,15 @@
                     @if ($uploadStatus === 'processing')
                         @php
                             $stepLabel = match ($processingStep) {
-                                'resize'    => 'Resizing image&hellip;',
-                                'thumbnail' => 'Generating thumbnail&hellip;',
-                                'optimize'  => 'Optimising&hellip;',
-                                default     => 'Starting&hellip;',
+                                'resize'    => 'Resizing image…',
+                                'thumbnail' => 'Generating thumbnail…',
+                                'optimize'  => 'Optimising…',
+                                default     => 'Starting…',
                             };
                         @endphp
                         <div class="space-y-2">
                             <div class="flex items-center justify-between text-sm">
-                                <span class="text-gray-700 font-medium">{!! $stepLabel !!}</span>
+                                <span class="text-gray-700 font-medium">{{ $stepLabel }}</span>
                                 <span class="text-gray-400 tabular-nums">{{ $progress }}%</span>
                             </div>
                             <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">

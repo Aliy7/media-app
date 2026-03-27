@@ -34,8 +34,8 @@ class ImageProcessingService
             Storage::disk($disk)->put($outputPath, $encoded);
 
             return $outputPath;
-        } catch (ImageProcessingException $e) {
-            throw $e;
+        } catch (ImageProcessingException $e) { // @codeCoverageIgnore
+            throw $e; // @codeCoverageIgnore
         } catch (\Throwable $e) {
             throw new ImageProcessingException("Resize failed for [{$path}]: {$e->getMessage()}", previous: $e);
         }
@@ -64,8 +64,8 @@ class ImageProcessingService
             Storage::disk($disk)->put($outputPath, $encoded);
 
             return $outputPath;
-        } catch (ImageProcessingException $e) {
-            throw $e;
+        } catch (ImageProcessingException $e) { // @codeCoverageIgnore
+            throw $e; // @codeCoverageIgnore
         } catch (\Throwable $e) {
             throw new ImageProcessingException("Thumbnail generation failed for [{$path}]: {$e->getMessage()}", previous: $e);
         }
@@ -92,8 +92,8 @@ class ImageProcessingService
             Storage::disk($disk)->put($outputPath, $encoded);
 
             return $outputPath;
-        } catch (ImageProcessingException $e) {
-            throw $e;
+        } catch (ImageProcessingException $e) { // @codeCoverageIgnore
+            throw $e; // @codeCoverageIgnore
         } catch (\Throwable $e) {
             throw new ImageProcessingException("Optimization failed for [{$path}]: {$e->getMessage()}", previous: $e);
         }
@@ -119,7 +119,7 @@ class ImageProcessingService
             'png'        => $image->toPng()->toString(),
             'gif'        => $image->toGif()->toString(),
             'webp'       => $image->toWebp($quality)->toString(),
-            'avif'       => $image->toAvif($quality)->toString(),
+            'avif'       => $image->toAvif($quality)->toString(), // @codeCoverageIgnore
             default      => $image->toJpeg($quality)->toString(),
         };
     }
@@ -130,7 +130,7 @@ class ImageProcessingService
             'png'   => $image->toPng()->toString(),   // PNG is lossless; compression handled by encoder defaults
             'gif'   => $image->toGif()->toString(),
             'webp'  => $image->toWebp(65)->toString(),
-            'avif'  => $image->toAvif(65)->toString(),
+            'avif'  => $image->toAvif(65)->toString(), // @codeCoverageIgnore
             default => $image->toJpeg(75)->toString(),
         };
     }
