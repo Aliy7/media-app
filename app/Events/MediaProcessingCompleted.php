@@ -19,7 +19,12 @@ class MediaProcessingCompleted implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public readonly Media $media) {}
+    public readonly string $completedAt;
+
+    public function __construct(public readonly Media $media)
+    {
+        $this->completedAt = now()->toIso8601String();
+    }
 
     public function broadcastOn(): PrivateChannel
     {
@@ -41,7 +46,7 @@ class MediaProcessingCompleted implements ShouldBroadcast
                 'thumbnail' => $outputs['thumbnail'] ?? null,
                 'optimized' => $outputs['optimized'] ?? null,
             ],
-            'completed_at' => now()->toIso8601String(),
+            'completed_at' => $this->completedAt,
         ];
     }
 }

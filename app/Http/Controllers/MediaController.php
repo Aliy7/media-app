@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\InvalidMediaException;
-use App\Jobs\ProcessImageJob;
 use App\Models\Media;
 use App\Services\MediaUploadService;
 use Illuminate\Http\JsonResponse;
@@ -55,8 +54,7 @@ class MediaController extends Controller
 
         $this->authorize('delete', $media);
 
-        $this->deleteMediaFile($media);
-        $media->delete();
+        $this->uploadService->delete($media);
 
         return response()->noContent();
     }
@@ -69,16 +67,9 @@ class MediaController extends Controller
 
         abort_if($media->status !== Media::STATUS_FAILED, 422, 'Only failed media can be retried.');
 
-        $media->update([
-            'status'          => Media::STATUS_PENDING,
-            'processing_step' => null,
-            'progress'        => 0,
-            'error_message'   => null,
-        ]);
+        $this->uploadService->retry($media);
 
-        ProcessImageJob::dispatch($media)->delay(now()->addSeconds(5));
-
-        return response()->json(['uuid' => $media->uuid, 'status' => $media->status]);
+        return response()->json(['uuid' => $media->uuid, 'status' => $media->fresh()->status]);
     }
 
     public function thumbnail(string $uuid): \Illuminate\Http\Response
@@ -97,8 +88,4 @@ class MediaController extends Controller
         );
     }
 
-    private function deleteMediaFile(Media $media): void
-    {
-        Storage::disk('media')->delete($media->stored_filename);
-    }
 }

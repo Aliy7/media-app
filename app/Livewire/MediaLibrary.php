@@ -2,8 +2,8 @@
 
 namespace App\Livewire;
 
-use App\Jobs\ProcessImageJob;
 use App\Models\Media;
+use App\Services\MediaUploadService;
 use Carbon\Carbon;
 use Livewire\Component;
 
@@ -52,14 +52,7 @@ class MediaLibrary extends Component
             return;
         }
 
-        $media->update([
-            'status'          => Media::STATUS_PENDING,
-            'processing_step' => null,
-            'progress'        => 0,
-            'error_message'   => null,
-        ]);
-
-        ProcessImageJob::dispatch($media)->delay(now()->addSeconds(5));
+        app(MediaUploadService::class)->retry($media);
 
         // Clear any stale live-update state for this card so it re-renders
         // from the fresh DB values immediately.

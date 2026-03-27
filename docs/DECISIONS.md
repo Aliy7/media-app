@@ -641,3 +641,357 @@ is out of scope for this assignment.
 **Files to change:** `MediaUploadService` (or a new `MediaRetryService`),
 `MediaController` (new `retry` action), `routes/web.php` (new route),
 `MediaUploader` and `MediaLibrary` blade (Retry button), tests.
+
+---
+
+## Part 6 — Phase 4.4 Echo / Soketi Configuration Decisions
+
+### D-031 · `VITE_PUSHER_HOST=localhost` — browser vs. Docker-internal hostname
+**Date:** 2026-03-26
+
+**Context:** After wiring `window.Echo` in `bootstrap.js`, the WebSocket connection
+silently failed. The browser could not reach Soketi.
+
+**Root cause:** `.env` had `PUSHER_HOST=soketi` (the Docker Compose service name —
+resolvable inside the Docker network by the PHP app container). Vite embeds
+`VITE_*` variables into the compiled JS bundle, which runs in the **browser on the
+host machine** — not inside Docker. `soketi` is not a hostname the host machine
+can resolve. The browser connected to `ws://soketi:6001` → DNS failure → silent
+WebSocket error.
+
+**Decision:** Set `VITE_PUSHER_HOST=localhost` in `.env`. The Docker Compose port
+mapping `6001:6001` means the browser reaches Soketi through the host's
+`localhost:6001` port. The server-side `PUSHER_HOST=soketi` remains correct for
+PHP → Soketi communication inside Docker.
+
+**Key distinction recorded in `.env.example`:**
+```
+# Server-side (PHP → Soketi, inside Docker network)
+PUSHER_HOST=soketi
+
+# Browser-side (JS bundle → Soketi, from host machine through port mapping)
+VITE_PUSHER_HOST=localhost
+```
+
+**Why this matters for assessors:** Any evaluator cloning the repo will run the
+browser on their host machine. If this distinction is not documented, they see a
+blank/stuck uploader with no error visible in the UI.
+
+---
+
+### D-032 · Echo client configuration: `enabledTransports` and `disableStats`
+**Date:** 2026-03-26
+
+**Context:** Default `pusher-js` configuration attempts HTTP long-polling fallback
+and reports connection statistics to Pusher's cloud analytics endpoint.
+
+**Decisions:**
+1. `enabledTransports: ['ws', 'wss']` — Soketi only supports WebSocket transports.
+   Enabling HTTP fallback would cause `pusher-js` to attempt HTTP polling to a
+   Soketi endpoint that doesn't exist, producing connection errors after WebSocket
+   failure. WS-only is correct and faster.
+
+2. `disableStats: true` — `pusher-js` by default POSTs connection stats to
+   `pusher.com/pusher/app/{key}/...`. We are self-hosted; those requests fail with
+   CORS errors and pollute the browser console. `disableStats: true` suppresses
+   the outbound call entirely.
+
+**No rejected alternatives** — both are correct defaults for any self-hosted
+Pusher-protocol server.
+
+---
+
+## Part 7 — Phase 4.5 Soketi Verification & Failure Path Testing
+
+### D-033 · `mediaflow:verify-broadcast` artisan command for server-side Soketi diagnostics
+**Date:** 2026-03-26
+
+**Context:** Task 4.5 required proving that Laravel can publish to Soketi. Browser
+devtools verification is manual and non-reproducible. A programmatic server-side
+check is needed for CI and for the assessor.
+
+**Decision:** Ship `app/Console/Commands/VerifyBroadcast.php` as a four-step
+diagnostic command:
+1. TCP socket from app container to `soketi:6001` — proves network reachability
+2. Pusher SDK queries the channels REST API — proves auth credentials are correct
+3. SDK publishes a test event — Soketi returns `{"ok": true}`
+4. Laravel `BroadcastManager` dispatches through the full config chain —
+   proves the production code path (not just the SDK) is wired correctly
+
+**Why an artisan command over a test:** The integration test auto-skips when Soketi
+is unreachable (CI without Docker). The artisan command is for the running stack —
+it is the quick diagnostic a developer runs when they suspect a misconfiguration.
+Both serve different audiences.
+
+---
+
+### D-034 · How to trigger the failure path when only images are accepted
+**Context:** Challenge raised: "How can failure be tested since allowed file format
+is only images?" All non-image files are rejected at the boundary before any job
+is dispatched. The `MediaProcessingFailed` broadcast event can only fire if a file
+passes validation but then fails inside the processing pipeline.
+
+**Three approaches evaluated:**
+
+| Approach | Description | Assessment |
+|---|---|---|
+| Corrupt JPEG fixture | JPEG with valid magic bytes but corrupt scan data — passes all validation, Imagick throws at decode | Realistic, reproducible, end-to-end |
+| File deletion during delay window | Upload valid file, delete from storage before 5s delay expires | Manual timing, not reliably reproducible |
+| Artisan trigger command | Create a Media record pointing to a non-existent file, dispatch with delay | Reliable for demo, doesn't require a browser upload |
+
+**Decision:** Build both Approach 1 and Approach 3. Approach 2 requires manual
+timing and cannot be scripted.
+
+**Corrupt fixture design (`tests/fixtures/corrupt-for-failure-test.jpg`):**
+- Valid JPEG SOI `FF D8 FF` magic bytes → `finfo` detects `image/jpeg`
+- Valid APP0 + SOF0 headers with declared dimensions 800×600 → `getimagesize()` returns width=800, height=600
+- All Laravel validation rules pass: `mimetypes:image/jpeg`, `dimensions:min_width=100`
+- Corrupt scan data → `Imagick::resizeImage()` throws `ImagickException: negative or zero image size`
+
+**Observable failure timeline:**
+```
+Upload corrupt.jpg
+    ↓ pending (5s dispatch delay)
+    ↓ processing → ResizeImageJob → ImagickException (attempt 1)
+    ↓ 10s backoff
+    ↓ processing → attempt 2 → same exception
+    ↓ 30s backoff
+    ↓ processing → attempt 3 → same exception → failed()
+    ↓ failed — MediaProcessingFailed broadcast → red card + Retry button
+```
+Total: ~41s. The wait is deliberate — it makes the 3-attempt retry mechanism from
+spec §7 visually observable in the Horizon dashboard.
+
+---
+
+### D-035 · Intervention Image v3: `scaleDown()` vs `resize()` for aspect ratio
+**Date:** 2026-03-26
+
+**Context:** After Phase 4.5 went live, the user reported images were cropped and
+distorted after processing. Root cause confirmed: `ImageProcessingService::resize()`
+was calling `->resize($width, $height)`.
+
+**Root cause:** In Intervention Image v3, `->resize($width, $height)` stretches the
+image to *exactly* the specified pixel dimensions with no regard for aspect ratio.
+A portrait 3:4 image resized to 1920×1080 (16:9) is squashed horizontally.
+
+**Decision:** Replace with `->scaleDown($width, $height)`.
+`scaleDown()` scales the image so that neither dimension exceeds the target while
+preserving the original aspect ratio. It never upscales (scale *down* only) — a
+small image already within bounds is returned unchanged.
+
+**Why `scaleDown` over `resize` with explicit ratio calculation:**
+- Single method call, no manual width/height ratio arithmetic
+- Handles both landscape and portrait correctly
+- Matches the intent of "resize to fit a bounding box" which is what the spec
+  describes (§ 4: "resize to 1920×1080 maximum")
+
+**`thumbnail()` uses `->cover()` — unchanged.** Cover crops to fill the exact
+dimensions (correct for square thumbnails). This is intentional and was not the bug.
+
+**Files changed:** `app/Services/ImageProcessingService.php`
+
+---
+
+### D-036 · `SoketiBroadcastIntegrationTest` channel-registration isolation fix
+**Date:** 2026-03-26
+
+**Context:** When switching the broadcaster from `null` (PHPUnit default — prevents
+actual broadcast calls) to `pusher` (to hit real Soketi) in a test's `setUp()`,
+channel auth callbacks registered on the null driver were invisible to the pusher
+driver. Channel auth tests returned 403 for the owner.
+
+**Root cause:** Each Laravel broadcast driver instance maintains its own channel
+registry. Switching drivers with `config(['broadcasting.default' => 'pusher'])` gives
+you a fresh pusher driver instance with no registered channels.
+
+**Decision:** In `setUp()`, before switching driver, snapshot the channel callbacks
+from the null driver and re-register them on the pusher driver:
+```php
+$manager  = $this->app->make(BroadcastManager::class);
+$channels = $manager->driver()->getChannels()->all();    // snapshot from null driver
+config(['broadcasting.default' => 'pusher']);
+foreach ($channels as $pattern => $callback) {           // re-register on pusher
+    $manager->driver()->channel($pattern, $callback);
+}
+```
+This is the same pattern used in `BroadcastChannelTest`. Extracted and documented
+here as the canonical fix for this class of isolation problem.
+
+**Auto-skip guard:** The entire `SoketiBroadcastIntegrationTest` class skips if
+Soketi is unreachable at `soketi:6001`. This prevents CI failures in environments
+without Docker (e.g., GitHub Actions without the compose stack).
+
+---
+
+## Part 8 — Phase 5.1 Edge Case Handling Decisions
+
+### D-037 · MIME validation reads actual file content, not filename extension
+**Date:** 2026-03-27
+
+**Challenge raised:** "Upload a PDF with `somefile.jpg` — can the system detect it?"
+
+**Verification:** `UploadedFile::getMimeType()` invokes PHP's `finfo` extension with
+`FILEINFO_MIME_TYPE`, which reads the file's magic bytes regardless of filename.
+A PDF file named `somefile.jpg` returns `application/pdf` from `getMimeType()` even
+if the HTTP request headers claim `Content-Type: image/jpeg`.
+
+Confirmed in a running container:
+```
+getMimeType():      application/pdf   ← from file bytes
+getClientMimeType(): image/jpeg        ← what browser claimed
+Laravel mimetypes: validator: FAILS   ← rejects correctly
+```
+
+**Decision:** No code change required — validation was already correct. A test
+fixture was added (`tests/fixtures/pdf-disguised-as-jpg.jpg`) containing real PDF
+bytes to prove this in automated tests. Two tests were added:
+
+1. `test_pdf_disguised_as_jpg_detected_mime_is_not_image` — asserts `getMimeType()`
+   returns `application/pdf` and `getClientMimeType()` returns `image/jpeg`, proving
+   the fixture genuinely represents a spoofed upload. If this fails, the spoofing
+   test below is meaningless.
+2. `test_pdf_with_jpg_extension_is_rejected_by_content_detection` — proves the
+   full HTTP stack rejects the spoofed file with 422 and no DB record created.
+
+**Why use `mimetypes:` rule (not `mimes:`):** The `mimes` rule trusts the file
+extension; `mimetypes` rule calls `getMimeType()` (finfo). Using `mimes` would
+have been vulnerable to spoofing. Using `mimetypes` is the correct, content-based
+check.
+
+---
+
+### D-038 · Multi-user concurrent upload isolation — UUID storage and ownership
+**Date:** 2026-03-27
+
+**Challenge raised:** "What about multiple users uploading at the same time — can
+the system handle this? Ensure files don't get mixed up between users' libraries."
+
+**Analysis:** The architecture has three isolation mechanisms already in place:
+
+| Layer | Mechanism | Guarantees |
+|---|---|---|
+| Storage | `stored_filename = UUID.ext` — `Str::uuid()` per upload | No two uploads share a file path |
+| Database | `media.user_id = $user->id` set explicitly at record creation | Ownership is always the authenticated user |
+| Policy | `MediaPolicy::view/delete/retry` checks `$user->id === $media->user_id` | No cross-user access on any endpoint |
+
+**Decision:** No code change required — isolation was already correct. Six new
+tests were added to prove it under concurrent conditions:
+
+1. Three users uploading simultaneously → three independent records, each with
+   the correct `user_id`
+2. All stored filenames are unique — no shared storage paths
+3. User B cannot view User A's media (403)
+4. User B cannot delete User A's media (403, record preserved)
+5. Each queued job carries only its owner's `media.user_id` — no cross-linking
+6. User-supplied filenames (e.g. `../../etc/passwd.jpg`) do not appear in
+   `stored_filename` — path traversal input cannot leak into storage paths
+
+**Why UUID not user-scoped paths:** Storing files under `{user_id}/filename` would
+work for isolation, but UUID-per-file is strictly stronger: it guarantees
+uniqueness globally, not just per user. Two users uploading files with the same
+original name cannot collide even if the UUID-generation probability of collision
+is astronomically low. UUID storage also allows files to be served by UUID without
+exposing the `user_id` in the URL.
+
+---
+
+## Part 9 — Phase 5.2 OOP Audit Decisions
+
+### D-039 · Business logic extracted from controller: `retry()` and `delete()` to service
+**Date:** 2026-03-27
+
+**Audit finding:** `MediaController::retry()` directly mutated the DB and dispatched
+a job (business logic in the HTTP layer). The identical logic was copy-pasted into
+`MediaUploader::retryProcessing()` and `MediaLibrary::retryMedia()` — the same
+sequence triplicated across three files. `MediaController::deleteMediaFile()` was a
+private method containing storage logic in a controller.
+
+**Violations:**
+- Controller doing DB mutations and job dispatch (not routing/response concerns)
+- No single source of truth for retry semantics — three copies to keep in sync
+- File deletion logic embedded in the HTTP layer
+
+**Decision:** Extract to `MediaUploadService::retry(Media $media): void` and
+`MediaUploadService::delete(Media $media): void`.
+
+- All three callers (`MediaController`, `MediaUploader`, `MediaLibrary`) now
+  delegate to the service — one definition, three consumers.
+- `MediaController::deleteMediaFile()` private method removed entirely.
+- The delete method preserves the correct operation order: file removed from
+  storage first (`stored_filename` still accessible on the model), DB record
+  deleted second. Reversing the order would orphan the file if the storage call
+  threw.
+
+**Why operation order in `delete()` matters:**
+```php
+Storage::disk('media')->delete($media->stored_filename);  // ① file deleted
+$media->delete();                                          // ② record deleted
+```
+If ① throws, the DB record is preserved — we can retry. If the order were
+reversed and ② succeeded before ① threw, the file would be orphaned with no
+record pointing to it.
+
+---
+
+### D-040 · Event timestamps captured at construction time, not at broadcast time
+**Date:** 2026-03-27
+
+**Audit finding:** `MediaProcessingStarted`, `MediaProcessingCompleted`, and
+`MediaProcessingFailed` called `now()` inside `broadcastWith()`. This means the
+timestamp in the payload was generated at the moment the event was *broadcast*
+(by a queue worker processing the broadcast job) — potentially seconds after the
+event was *fired* (when the domain action occurred).
+
+**Violation:** `broadcastWith()` should be a pure data accessor. Calling `now()`
+inside it introduces side effects and produces timestamps that are semantically
+wrong — they report the broadcast time, not the event time.
+
+**Decision:** Capture the timestamp in each event's constructor and store it as a
+`readonly` property. `broadcastWith()` returns the stored value.
+
+```php
+// Before — timestamp at broadcast time (wrong)
+public function broadcastWith(): array {
+    return ['started_at' => now()->toIso8601String()];  // ← now() is when Soketi receives it
+}
+
+// After — timestamp at event-fire time (correct)
+public readonly string $startedAt;
+
+public function __construct(public readonly Media $media) {
+    $this->startedAt = now()->toIso8601String();  // ← now() is when job fired the event
+}
+
+public function broadcastWith(): array {
+    return ['started_at' => $this->startedAt];    // ← pure accessor, no side effects
+}
+```
+
+**Why it matters in practice:** With a queue delay or a loaded worker, the gap
+between event dispatch and broadcast delivery can be several seconds. A timestamp
+recorded at broadcast time would show the event happening later than it did,
+making the timeline in the browser UI misleading for debugging.
+
+---
+
+### D-041 · `MediaUploadService` name does not reflect expanded scope
+**Date:** 2026-03-27
+
+**Observation:** After the OOP audit extracted `retry()` and `delete()` into
+`MediaUploadService`, the class now handles the full media lifecycle: upload,
+retry, and delete. The name `MediaUploadService` accurately described the class
+when it only handled uploads (Phase 2) but is now misleading.
+
+**Decision:** Rename to `MediaService` is the correct long-term fix. Deferred to
+Phase 6 (documentation / polish) — it is a mechanical find-and-replace across the
+codebase with no logic risk, but would generate a noisy diff with no behaviour
+change during the active hardening phase.
+
+**Impact of not renaming immediately:** None on behaviour. A code reader will find
+`retry()` and `delete()` methods on a class called `MediaUploadService` and may
+be confused — the docblocks on each method explain the scope.
+
+**Accepted trade-off:** Clarity of naming is sacrificed temporarily in favour of
+keeping the hardening-phase diff focused on behaviour, not refactoring. The rename
+is logged here so it is not forgotten.

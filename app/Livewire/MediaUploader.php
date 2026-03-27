@@ -3,7 +3,6 @@
 namespace App\Livewire;
 
 use App\Exceptions\InvalidMediaException;
-use App\Jobs\ProcessImageJob;
 use App\Models\Media;
 use App\Services\MediaUploadService;
 use Illuminate\Support\Facades\Log;
@@ -185,14 +184,7 @@ class MediaUploader extends Component
             return;
         }
 
-        $media->update([
-            'status'          => Media::STATUS_PENDING,
-            'processing_step' => null,
-            'progress'        => 0,
-            'error_message'   => null,
-        ]);
-
-        ProcessImageJob::dispatch($media)->delay(now()->addSeconds(5));
+        app(MediaUploadService::class)->retry($media);
 
         $this->uploadStatus   = 'pending';
         $this->processingStep = null;

@@ -60,6 +60,32 @@ class MediaUploadService
         return $media;
     }
 
+    /**
+     * Reset a failed Media record to pending and re-dispatch the processing job.
+     * The 5-second delay gives the browser time to re-establish the Echo
+     * subscription before the first event fires (see DECISIONS.md D-027).
+     */
+    public function retry(Media $media): void
+    {
+        $media->update([
+            'status'          => Media::STATUS_PENDING,
+            'processing_step' => null,
+            'progress'        => 0,
+            'error_message'   => null,
+        ]);
+
+        ProcessImageJob::dispatch($media)->delay(now()->addSeconds(5));
+    }
+
+    /**
+     * Remove the stored file from disk and delete the Media record.
+     */
+    public function delete(Media $media): void
+    {
+        Storage::disk('media')->delete($media->stored_filename);
+        $media->delete();
+    }
+
     private function validateMimeType(UploadedFile $file): void
     {
         if (! in_array($file->getMimeType(), self::ALLOWED_MIME_TYPES, true)) {

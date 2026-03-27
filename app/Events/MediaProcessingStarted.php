@@ -18,7 +18,12 @@ class MediaProcessingStarted implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public readonly Media $media) {}
+    public readonly string $startedAt;
+
+    public function __construct(public readonly Media $media)
+    {
+        $this->startedAt = now()->toIso8601String();
+    }
 
     public function broadcastOn(): PrivateChannel
     {
@@ -35,7 +40,7 @@ class MediaProcessingStarted implements ShouldBroadcast
         return [
             'status'     => $this->media->status,
             'filename'   => $this->media->original_filename,
-            'started_at' => now()->toIso8601String(),
+            'started_at' => $this->startedAt,
         ];
     }
 }

@@ -18,11 +18,15 @@ class MediaProcessingFailed implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    public readonly string $failedAt;
+
     public function __construct(
         public readonly Media  $media,
         public readonly string $step,
         public readonly string $errorMessage,
-    ) {}
+    ) {
+        $this->failedAt = now()->toIso8601String();
+    }
 
     public function broadcastOn(): PrivateChannel
     {
@@ -39,7 +43,7 @@ class MediaProcessingFailed implements ShouldBroadcast
         return [
             'step'      => $this->step,
             'error'     => $this->errorMessage,
-            'failed_at' => now()->toIso8601String(),
+            'failed_at' => $this->failedAt,
         ];
     }
 }
