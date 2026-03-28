@@ -20,7 +20,7 @@ jobs:
           MYSQL_PASSWORD: ${{ secrets.DB_PASSWORD }}
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping -p${{ secrets.DB_PASSWORD }} --silent" --health-interval=10s --health-timeout=5s --health-retries=5
+        options: --health-interval=10s --health-timeout=5s --health-retries=5
 
       redis:
         image: redis:7.2-alpine
@@ -53,6 +53,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            mysqladmin ping -h 127.0.0.1 -P 3306 -u mediaflow -p${{ secrets.DB_PASSWORD }} --silent 2>/dev/null && echo "MySQL ready" && break
+            echo "Waiting for MySQL ($i/30)..."
+            sleep 2
+          done
 
       - name: Setup PHP 8.3
         uses: shivammathur/setup-php@v2
