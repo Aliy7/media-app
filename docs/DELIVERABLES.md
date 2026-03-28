@@ -73,25 +73,25 @@ The application runs from a single command on any machine with Docker installed.
 | Invalid/corrupt file triggers job failure | [x] | Phase 3 | Step 6 |
 | `Media` record updated with `failed` status and error message | [x] | Phase 3 | Step 6 |
 | Failed job visible in Horizon dashboard | [x] | Phase 3 | Step 6 |
-| User notified of failure via real-time broadcast | [ ] | Phase 4 | Step 6 |
+| User notified of failure via real-time broadcast | [x] | Phase 4 | Step 6 |
 
 ### 2.7 Real-Time Broadcasting
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
 | Soketi WebSocket server running in Docker | [x] | Phase 1 | Step 4 |
-| Private broadcast channels scoped to individual media items | [ ] | Phase 4 | Step 4 |
-| Channel authentication verifies media ownership | [ ] | Phase 4 | Step 7 |
-| Events broadcast: started, step completed, completed, failed | [ ] | Phase 4 | Step 4 |
-| UI updates without page refresh | [ ] | Phase 4 | Step 4 |
+| Private broadcast channels scoped to individual media items | [x] | Phase 4 | Step 4 |
+| Channel authentication verifies media ownership | [x] | Phase 4 | Step 7 |
+| Events broadcast: started, step completed, completed, failed | [x] | Phase 4 | Step 4 |
+| UI updates without page refresh | [x] | Phase 4 | Step 4 |
 
 ### 2.8 Livewire Frontend
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
-| `MediaUploader` component: upload form with real-time progress | [ ] | Phase 4 | Step 3–4 |
-| `MediaLibrary` component: list of uploads with statuses | [ ] | Phase 4 | Step 4 |
-| Progress bar advancing through processing steps | [ ] | Phase 4 | Step 4 |
-| Output thumbnails displayed on completion | [ ] | Phase 4 | Step 4 |
-| Error state displayed on failure | [ ] | Phase 4 | Step 6 |
+| `MediaUploader` component: upload form with real-time progress | [x] | Phase 4 | Step 3–4 |
+| `MediaLibrary` component: list of uploads with statuses | [x] | Phase 4 | Step 4 |
+| Progress bar advancing through processing steps | [x] | Phase 4 | Step 4 |
+| Output thumbnails displayed on completion | [x] | Phase 4 | Step 4 |
+| Error state displayed on failure | [x] | Phase 4 | Step 6 |
 
 ### 2.9 Horizon Dashboard
 | Deliverable | Done | Phase | Demo Step |
@@ -109,8 +109,8 @@ The application runs from a single command on any machine with Docker installed.
 | `MediaUploadService` encapsulates upload logic | [x] | Phase 2 | Step 7 |
 | `ImageProcessingService` encapsulates Intervention Image operations | [x] | Phase 3 | Step 7 |
 | Each job class has a single processing responsibility | [x] | Phase 3 | Step 7 |
-| Events carry data only, no logic | [ ] | Phase 4 | Step 7 |
-| Listeners handle broadcasting only, no domain logic | [ ] | Phase 4 | Step 7 |
+| Events carry data only, no logic | [x] | Phase 4 | Step 7 |
+| Listeners handle broadcasting only, no domain logic | [x] | Phase 4 | Step 7 |
 
 ### 2.11 Testing
 | Deliverable | Done | Phase | Demo Step |
@@ -248,10 +248,12 @@ docker compose exec app php artisan migrate --seed
 **Shows:** Breeze auth, session management, route protection.
 
 ### Step 3: Image Upload
-- Navigate to `/media/upload`
-- Upload `demo-large.jpg` (~8MB) — large enough that processing takes several visible seconds
-- Observe: form validation, immediate HTTP response (< 500ms), UI transitions to "processing" state without redirect
-**Shows:** Thin controller, service layer, job dispatch, non-blocking HTTP response.
+- Navigate to Dashboard → click **Upload Image** (opens inline modal — no page navigation)
+- First upload `demo-small.jpg` (800×600, ~34 KB) — confirms the happy path quickly
+- Then upload `demo-large.jpg` (4000×3000, ~5.6 MB) — processing takes several visible seconds, ideal for Step 4
+- Observe: form validation, immediate HTTP response (< 500ms), UI transitions to "Queued → processing" without redirect
+- Both files are in the `demo/` folder at the project root
+**Shows:** Thin controller, service layer, job dispatch, non-blocking HTTP response, partial-SPA upload modal.
 
 ### Step 4: Real-Time Processing (key demo moment)
 - **Open browser devtools → Network → WS tab** — show live WebSocket connection to `ws://localhost:6001`
@@ -267,9 +269,10 @@ docker compose exec app php artisan migrate --seed
 **Shows:** Production queue monitoring, queue priorities, job configuration.
 
 ### Step 6: Failure Handling
-- Upload `demo-corrupt.jpg` (a renamed `.txt` file)
-- Observe: job fails after retry attempts, Horizon shows failed job with exception trace, UI displays error message in real-time
-**Shows:** Failed job handling, retry logic, user notification on failure, Horizon failure visibility.
+- Upload `demo-corrupt.jpg` from the `demo/` folder (a real PDF file with a `.jpg` extension)
+- Observe: MIME check rejects it immediately, no job is dispatched, UI displays the error message inline
+- Alternatively retry a failed card from the library to show the re-queue path
+**Shows:** Server-side MIME validation, InvalidMediaException handling, user-facing error feedback, Horizon failure visibility.
 
 ### Step 7: Code Walkthrough (if required)
 Walk through the OOP architecture:

@@ -615,14 +615,17 @@ Message: "hardening: edge case handling, OOP audit fixes, security validation, t
 ### Tasks
 
 #### 6.1 Database Seeders
-- [ ] `UserSeeder`: create demo user (credentials in `.env.example`)
-- [ ] `MediaSeeder`: create sample media records in various states (pending, processing, completed, failed)
+- [x] `UserSeeder`: 10 demo users — credentials in `docs/SEED_CREDENTIALS.md`
+- [x] `MediaSeeder`: 50 records across 10 users — JPEG/PNG/GIF/WebP, all statuses, real GD images on disk
 
 #### 6.2 Demo Script
-- [ ] Verify `docker compose up` → all services healthy in < 2 minutes
-- [ ] Verify Horizon dashboard accessible at `/horizon`
-- [ ] Verify full upload → real-time processing → completion flow works cleanly
-- [ ] Prepare 3 test images: small (fast), large (slow, good for demonstrating async), corrupt (demonstrates failure handling)
+- [x] Verify `docker compose up` → all 6 services healthy (MySQL + Redis report `healthy`)
+- [x] Verify Horizon dashboard accessible at `/horizon` — `horizon:status` reports running
+- [x] Verify full upload → real-time processing → completion flow works cleanly (manual test)
+- [x] Prepare 3 test images in `demo/`:
+  - `demo-small.jpg` — 800×600 JPEG, ~34 KB — fast processing, good for quick demo
+  - `demo-large.jpg` — 4000×3000 JPEG, ~5.6 MB — slow enough to observe each job step
+  - `demo-corrupt.jpg` — PDF disguised as JPEG — fails MIME validation, triggers failure flow
 
 #### 6.3 Documentation
 - [ ] Update `README.md` with: prerequisites, startup steps, demo credentials, architecture summary
