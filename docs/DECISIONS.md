@@ -1,6 +1,6 @@
-# MediaFlow — Decision Log
+# Media-App — Decision Log
 
-**Project:** MediaFlow — Asynchronous Image Processing Platform
+**Project:** Media-App — Asynchronous Image Processing Platform
 **Author:** A. Muktar
 **Pairing:** A. Muktar (Architect/Reviewer) + Claude Code (Implementation Driver)
 **Method:** Iterative Incremental + Kanban

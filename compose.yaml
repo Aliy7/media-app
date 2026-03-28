@@ -1,8 +1,8 @@
 # =============================================================================
-# MediaFlow — Docker Compose
+# Media-App — Docker Compose
 #
 # Services:
-#   app     — PHP 8.5-FPM (Laravel application server)
+#   app     — PHP 8.3-FPM (Laravel application server)
 #   nginx   — Web server; proxies HTTP to app:9000
 #   mysql   — MySQL 8.4 (primary database)
 #   redis   — Redis 7.2 (queue driver, cache, session store)

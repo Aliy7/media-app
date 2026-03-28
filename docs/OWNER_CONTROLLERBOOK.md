@@ -1,7 +1,7 @@
 # OWNER_CONTROLLERBOOK.md
-## MediaFlow — Human Controller Navigation Guide
+## Media-App — Human Controller Navigation Guide
 
-**Project:** MediaFlow — Asynchronous Image Processing Platform
+**Project:** Media-App — Asynchronous Image Processing Platform
 **Owner/Controller:** A. Muktar
 **Agent:** Claude Code
 **Methodology:** Iterative Incremental + Kanban
@@ -54,7 +54,7 @@ Run this at the start of every working session, every time.
 
 **Prompt to open a session:**
 ```
-We are resuming work on MediaFlow. We are currently in Phase [N].
+We are resuming work on Media-App. We are currently in Phase [N].
 Last session we completed [X]. Today I want to work on [Y].
 Before we start, update the Kanban board to reflect current status and tell me
 what the next task to pull into In Progress should be.
@@ -408,7 +408,7 @@ and its output. Do not skip any step.
 |---|------|----------|--------|----------------------|
 | 1 | 2026-03-23 | Iterative Incremental + Kanban methodology | Suits assignment scope and pairing model | Waterfall, Scrum |
 | 2 | 2026-03-23 | Tech stack per PROJECT_SPEC.md | Agreed in Phase 0 | — |
-| 3 | 2026-03-24 | PHP 8.3 used instead of 8.5 (D-025) | PHP 8.5 Docker image broke ext-install tooling | Stay on 8.5 |
+| 3 | 2026-03-24 | PHP 8.3 used instead of 8.5 (D-025) | PHP 8.5 Docker image broke ext-install tooling | Stay on 8.3 |
 | 4 | 2026-03-24 | CSRF fix in TestCase.php not bootstrap/app.php (D-026) | Laravel 13 renamed middleware; bootstrap approach unreliable at boot time | bootstrap/app.php withMiddleware callback |
 | 5 | 2026-03-26 | `readonly` removed from `ProcessImageJob::$media` (D-005) | PHP 8.3 + SerializesModels: __wakeup cannot re-assign readonly property after unserialize() init | Implement `__unserialize()` on job |
 | 6 | 2026-03-26 | `Bus::batch()` jobs use explicit `->onQueue()` at call site (D-006) | Batch dispatcher ignores queue set in constructor; jobs landed on `default` | Accept default queue behaviour |

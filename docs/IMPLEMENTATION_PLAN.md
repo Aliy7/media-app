@@ -1,5 +1,5 @@
 # Implementation Plan
-## MediaFlow — Iterative Incremental Lifecycle
+## Media-App — Iterative Incremental Lifecycle
 
 **Version:** 1.0
 **Date:** 2026-03-23
@@ -676,7 +676,7 @@ Message: "chore: add demo seeders, finalise README and environment documentation
 
 **Final tag after Phase 6 passes:**
 ```bash
-git tag -a v1.0.0 -m "MediaFlow v1.0.0 — assignment submission"
+git tag -a v1.0.0 -m "Media-App v1.0.0 — assignment submission"
 ```
 
 ---

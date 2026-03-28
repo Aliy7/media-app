@@ -1,5 +1,5 @@
 # Deliverables
-## MediaFlow — Assessment Criteria & Demo Requirements
+## Media-App — Assessment Criteria & Demo Requirements
 
 **Version:** 1.0
 **Date:** 2026-03-23

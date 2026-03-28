@@ -1,59 +1,245 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Image Processing Media App
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+I built this image processing media app for a technical assignment focused on queued background processing in Laravel, with Claude Code helping during development.
 
-## About Laravel
+The application lets an authenticated user upload an image, get an immediate response, and then watch the processing continue in the background. The interface updates in real time as the job moves through each step.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+I considered a CSV import pipeline and a few other ideas at the start. I chose an image processing media app because it suited the assignment, fit the time available, and made the asynchronous behaviour easier to show. It also gave me room to cover queue priorities, failure handling, retries, WebSocket updates, and OOP structure in Laravel.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## What This Project Demonstrates
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Laravel queue processing with Redis and Horizon
+- Real-time UI updates with Soketi, Laravel Broadcasting, Echo, and Livewire
+- Multiple named queues with different priorities
+- A service layer that keeps business logic out of controllers
+- Failed job handling and manual retry
+- Docker-based reproducibility for local setup and evaluation
+- Automated feature and unit tests around the queue and upload flow
 
-## Learning Laravel
+## Core Features
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- User authentication with Laravel Breeze
+- Image upload with server-side validation
+- Supported formats: JPEG, PNG, GIF, WebP
+- Validation limits: max 10 MB, min 100x100, max 8000x8000
+- Background processing pipeline for resize, thumbnail generation, and optimisation
+- Live processing state in the UI: `pending`, `processing`, `completed`, `failed`
+- Thumbnail preview for completed items
+- Retry path for failed items from both the uploader and the media library
+- Horizon dashboard for queue visibility and failure inspection
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Tech Stack
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+| Layer | Choice |
+|---|---|
+| Language | PHP 8.3 |
+| Framework | Laravel 13.1.1 |
+| UI | Blade + Livewire 3.7.11 + Tailwind 3.4.19 |
+| Auth | Laravel Breeze 2.4.1 |
+| Queue | Redis 7.2 |
+| Queue Monitor | Laravel Horizon 5.45.4 |
+| Image Processing | Intervention Image 3.11.7 + Imagick |
+| Broadcasting | Laravel Broadcasting |
+| WebSocket Server | Soketi 1.6 |
+| Client WS | Laravel Echo 2.3.1 + pusher-js 8.4.3 |
+| Database | MySQL 8.4 |
+| Runtime | Docker Compose (Vite 8.0.2) |
 
-## Agentic Development
+## How The Flow Works
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+1. The user uploads an image from the upload page.
+2. `MediaController` stays thin and delegates the work to `MediaUploadService`.
+3. The service validates the file, stores it on the `media` disk, creates the `media` record, and dispatches `ProcessImageJob`.
+4. `ProcessImageJob` is delayed by 5 seconds so the browser has time to subscribe to the private Echo channel before processing events are sent.
+5. The main job marks the media as `processing`, fires `MediaProcessingStarted`, and then dispatches:
+   - `ResizeImageJob` on `media-standard`
+   - `GenerateThumbnailJob` on `media-critical`
+6. Once both batch jobs finish, `OptimizeImageJob` runs on `media-low`.
+7. Each step updates the database and broadcasts progress.
+8. The Livewire components react to those events and update the page without a refresh.
+
+## Queue Design
+
+| Queue | Purpose |
+|---|---|
+| `media-critical` | Thumbnail generation for fast UI feedback |
+| `media-standard` | Main processing and resize work |
+| `media-low` | Final optimisation |
+
+All jobs use:
+
+- 3 attempts
+- exponential backoff: `10`, `30`, and `60` seconds
+- timeout: `120` seconds
+
+## Architecture Notes
+
+I tried to keep the structure simple and easy to explain:
+
+- Controllers handle HTTP concerns only
+- `MediaUploadService` owns upload and dispatch logic
+- `ImageProcessingService` owns image transformations
+- Each queue job has one processing responsibility
+- Events carry state changes
+- Broadcasting is scoped per media UUID through `private-media.{uuid}`
+
+This helped keep the HTTP layer, the queue workers, and the browser side clearly separate.
+
+## Why I Used Claude Code
+
+This project was developed with Claude Code.
+
+I mainly used it for:
+
+- exploring and comparing project options before implementation
+- scaffolding infrastructure and repetitive code
+- reviewing architecture trade-offs
+- generating and refining tests
+- debugging queue, serialization, and broadcasting edge cases
+- drafting and revising project documentation
+
+I still reviewed the suggestions myself and made the final decisions.
+
+## My Development Approach
+
+I started by comparing a few project ideas before writing any code. After that, I worked in phases:
+
+1. Infrastructure and Docker setup
+2. Upload flow and domain model
+3. Queue jobs and image processing
+4. Broadcasting and real-time UI
+5. Hardening, edge cases, and tests
+6. Demo preparation and documentation
+
+These documents were part of that process:
+
+- `docs/PROJECT_SPEC.md`
+- `docs/IMPLEMENTATION_PLAN.md`
+- `docs/DECISIONS.md`
+- `docs/DELIVERABLES.md`
+- `docs/SEED_CREDENTIALS.md`
+
+## Key Things I Ran Into
+
+These were the main issues I ran into while building it:
+
+1. `Bus::batch()` did not keep the queue assignment the way I first expected.
+Jobs that used `$this->onQueue(...)` in their constructors still landed on the `default` queue when dispatched inside a batch. I fixed that by calling `->onQueue(...)` directly at the `Bus::batch([...])` call site.
+
+2. `readonly` and `SerializesModels` did not work well together here.
+I first kept the `Media` model on `ProcessImageJob` as `readonly`, but PHP 8.3 queue unserialization broke because Laravel rehydrates the model after serialization. I ended up removing `readonly` from that property.
+
+3. Fast queue workers could finish before the browser had fully subscribed.
+On a fast local machine, Soketi and Horizon could finish processing before the browser had subscribed to the private channel. I added a 5-second dispatch delay and kept a Livewire polling fallback so the UI could still catch up if a broadcast was missed.
+
+I wrote these up in more detail in `docs/DECISIONS.md`.
+
+## Local Setup
+
+### Prerequisites
+
+- Docker
+- Docker Compose plugin
+
+PHP, Composer, Node, and npm all run inside the container, so the host machine only needs Docker.
+
+### First-Time Setup
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone https://github.com/Aliy7/media-app.git
+cd media-app
+cp .env.example .env
+docker compose up -d --build
+docker compose exec app composer install
+docker compose exec app npm install
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate --seed
+docker compose exec app npm run build
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+After that, open:
 
-## Contributing
+- App: `http://localhost`
+- Horizon: `http://localhost/horizon`
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+If port `80`, `3306`, or `6379` is already in use on your machine, change `APP_PORT`, `FORWARD_DB_PORT`, or `FORWARD_REDIS_PORT` in `.env` before running `docker compose up`.
 
-## Code of Conduct
+## Demo Credentials
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Seeded development users are documented in `docs/SEED_CREDENTIALS.md`.
 
-## Security Vulnerabilities
+Example login:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- Email: `alice@mediaflow.test`
+- Password: `password`
 
-## License
+In local development, any authenticated user can access `/horizon`.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-# media-app
+## Demo Walkthrough
+
+Prepared demo files are in the `demo/` directory.
+
+1. Log in with one of the seeded users.
+2. Upload `demo/demo-small.jpg` to confirm the happy path.
+3. Upload `demo/demo-large.jpg` and watch the UI state changes.
+4. Open `/horizon` and inspect queue activity across `media-critical`, `media-standard`, and `media-low`.
+5. Upload `demo/demo-corrupt.jpg` to show the invalid-file path.
+
+## Useful Commands
+
+```bash
+# Run the test suite
+docker compose exec app php artisan test
+
+# Verify the broadcast pipeline to Soketi
+docker compose exec app php artisan mediaflow:verify-broadcast
+
+# Dispatch sample jobs to observe Horizon queue behaviour
+docker compose exec app php artisan media:benchmark 5
+
+# Watch Soketi logs during a manual upload test
+docker compose logs -f soketi
+```
+
+## Testing
+
+The test suite covers:
+
+- HTTP upload flow
+- authentication and authorization boundaries
+- queue dispatch behaviour
+- queue retry behaviour
+- broadcast-related behaviour
+- image processing services
+- media model behaviour
+- edge cases and security checks
+
+Run tests with:
+
+```bash
+docker compose exec app php artisan test
+```
+
+## Submission Evidence
+
+Since the assignment asks for evidence of agentic development, I included the following:
+
+- `transcripts/` contains the AI conversation history used during the assignment
+- `export-transcript.sh` exports Claude Code session data into a consolidated markdown transcript
+- `docs/DECISIONS.md` records the important technical decisions and trade-offs
+
+## Scope Boundaries
+
+To keep the assignment focused, I kept these items out of scope:
+
+- video processing
+- cloud storage such as S3 or MinIO
+- public sharing or CDN delivery
+- OAuth login
+- image editing features such as crop or rotate
+- a separate SPA frontend
+
+## Final Note
+
+The aim of this project was not just to use queues in Laravel, but to show that I understand why they are useful, how the main parts fit together, and where AI help was useful versus where my own judgement mattered.
+

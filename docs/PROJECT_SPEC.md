@@ -1,5 +1,5 @@
 # Project Specification
-## MediaFlow — Asynchronous Image Processing Platform
+## Media-App — Asynchronous Image Processing Platform
 
 **Version:** 1.0
 **Date:** 2026-03-23
@@ -72,7 +72,7 @@ This project addresses that problem by implementing a fully asynchronous image p
 | Frontend Reactivity | Livewire | **3.x** (^3.0) | Reactive UI with native Echo/Broadcasting integration |
 | JavaScript Runtime | Node.js | **24.x** | Active release; required for Vite asset compilation |
 | Package Manager | NPM | **11.x** | Ships with Node 24 |
-| WebSocket Client | Laravel Echo | **1.x** | Browser WebSocket client for Soketi/Pusher |
+| WebSocket Client | Laravel Echo | **2.x** | Browser WebSocket client for Soketi/Pusher |
 | WebSocket Transport | pusher-js | **8.x** | Required by Echo for Pusher-protocol connection |
 | CSS Framework | Tailwind CSS | **3.x** | Ships with Breeze; utility-first, no custom CSS needed |
 | Database | MySQL | **8.4.x** | Familiar, deterministic SQL, sufficient for project scope |
