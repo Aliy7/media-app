@@ -6,9 +6,12 @@ use App\Models\Media;
 use App\Services\MediaUploadService;
 use Carbon\Carbon;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class MediaLibrary extends Component
 {
+    use WithPagination;
+
     /**
      * In-memory overrides for status/progress received via WebSocket before
      * the next full re-render. Keyed by media UUID.
@@ -64,11 +67,13 @@ class MediaLibrary extends Component
         if (! in_array($value, ['all', 'pending', 'processing', 'completed', 'failed'], true)) {
             $this->statusFilter = 'all';
         }
+        $this->resetPage();
     }
 
     public function toggleSort(): void
     {
         $this->sortOrder = $this->sortOrder === 'desc' ? 'asc' : 'desc';
+        $this->resetPage();
     }
 
     public function render()
@@ -79,12 +84,12 @@ class MediaLibrary extends Component
             $query->where('status', $this->statusFilter);
         }
 
-        $mediaItems = $query->orderBy('created_at', $this->sortOrder)->get();
+        $mediaItems = $query->orderBy('created_at', $this->sortOrder)->paginate(12);
 
-        // Group into human-readable date buckets while preserving sort order.
-        $grouped = $mediaItems->groupBy(fn ($m) => $this->dateBucket($m->created_at));
+        // Group the current page's items into human-readable date buckets.
+        $grouped = $mediaItems->getCollection()->groupBy(fn ($m) => $this->dateBucket($m->created_at));
 
-        return view('livewire.media-library', compact('grouped'))
+        return view('livewire.media-library', compact('grouped', 'mediaItems'))
             ->layout('layouts.app');
     }
 

@@ -12,9 +12,17 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" wire:navigate>
                         {{ __('Dashboard') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('media.upload')" :active="request()->routeIs('media.upload')" wire:navigate>
+                        {{ __('Upload') }}
+                    </x-nav-link>
+                    @can('viewHorizon')
+                    <x-nav-link href="/horizon" :active="request()->is('horizon*')">
+                        {{ __('Horizon') }}
+                    </x-nav-link>
+                    @endcan
                 </div>
             </div>
 
@@ -67,9 +75,17 @@
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" wire:navigate>
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('media.upload')" :active="request()->routeIs('media.upload')" wire:navigate>
+                {{ __('Upload') }}
+            </x-responsive-nav-link>
+            @can('viewHorizon')
+            <x-responsive-nav-link href="/horizon" :active="request()->is('horizon*')">
+                {{ __('Horizon') }}
+            </x-responsive-nav-link>
+            @endcan
         </div>
 
         <!-- Responsive Settings Options -->

@@ -1,17 +1,57 @@
-<div class="max-w-5xl mx-auto py-8 px-4">
+<div
+    x-data="{ showUpload: false }"
+    @close-uploader.window="showUpload = false; $wire.$refresh()"
+    class="max-w-5xl mx-auto py-8 px-4"
+>
+
+    {{-- ── Upload slide-over modal ─────────────────────────────────────── --}}
+    <div
+        x-show="showUpload"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 overflow-y-auto"
+        @keydown.escape.window="showUpload = false"
+        style="display: none;"
+    >
+        {{-- Backdrop --}}
+        <div class="fixed inset-0 bg-gray-900/60" @click="showUpload = false"></div>
+
+        {{-- Panel --}}
+        <div class="relative flex min-h-full items-center justify-center p-4">
+            <div class="relative w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden" @click.stop>
+
+                {{-- Close button --}}
+                <button
+                    @click="showUpload = false"
+                    class="absolute top-3 right-3 z-10 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                    title="Close"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+
+                @livewire('media-uploader', ['embedded' => true])
+            </div>
+        </div>
+    </div>
 
     {{-- ── Header ─────────────────────────────────────────────────────────── --}}
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-semibold text-gray-900">Media Library</h1>
-        <a
-            href="{{ route('media.upload') }}"
+        <button
+            @click="showUpload = true"
             class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-emerald-700 transition"
         >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
             </svg>
             Upload Image
-        </a>
+        </button>
     </div>
 
     {{-- ── Filter tabs + sort control ─────────────────────────────────────── --}}
@@ -61,9 +101,9 @@
             </svg>
             @if ($statusFilter === 'all')
                 <p class="text-base font-medium text-gray-500">No images yet</p>
-                <a href="{{ route('media.upload') }}" class="mt-2 inline-block text-sm text-emerald-600 hover:underline">
+                <button @click="showUpload = true" class="mt-2 inline-block text-sm text-emerald-600 hover:underline">
                     Upload your first image
-                </a>
+                </button>
             @else
                 <p class="text-base font-medium text-gray-500">No {{ $statusFilter }} images</p>
                 <button wire:click="$set('statusFilter', 'all')" class="mt-2 text-sm text-emerald-600 hover:underline">
@@ -215,6 +255,13 @@
 
         @endforeach
 
+    @endif
+
+    {{-- ── Pagination ──────────────────────────────────────────────────────── --}}
+    @if ($mediaItems->hasPages())
+        <div class="mt-8">
+            {{ $mediaItems->links() }}
+        </div>
     @endif
 
 </div>

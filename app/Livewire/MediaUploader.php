@@ -28,6 +28,9 @@ class MediaUploader extends Component
     ])]
     public $file = null;
 
+    /** When true the component is embedded inside a modal — layout is skipped and navigation links become close-modal dispatches. */
+    public bool $embedded = false;
+
     // Empty string (not null) so Livewire's echo-private placeholder resolver can
     // substitute it before a file has been uploaded. An empty channel name never
     // matches a real broadcast, so no spurious events fire.

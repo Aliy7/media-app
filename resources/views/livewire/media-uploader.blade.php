@@ -1,9 +1,10 @@
-<div class="min-h-screen bg-gray-50 flex items-start justify-center pt-16 px-4">
-    <div class="w-full max-w-lg">
+<div @class(['min-h-screen bg-gray-50 flex items-start justify-center pt-16 px-4' => !$embedded])>
+    <div class="{{ $embedded ? 'w-full' : 'w-full max-w-lg' }}">
 
-        {{-- Page header --}}
+        {{-- Page header — standalone only --}}
+        @unless ($embedded)
         <div class="mb-8">
-            <a href="{{ route('dashboard') }}" class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4">
+            <a href="{{ route('dashboard') }}" wire:navigate class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
@@ -12,8 +13,17 @@
             <h1 class="text-2xl font-bold text-gray-900">Upload Image</h1>
             <p class="text-sm text-gray-500 mt-1">JPEG, PNG, GIF or WebP &mdash; up to 10 MB, minimum 100&times;100 px</p>
         </div>
+        @endunless
 
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        {{-- Compact modal header --}}
+        @if ($embedded)
+        <div class="px-6 pt-5 pb-2">
+            <h2 class="text-lg font-semibold text-gray-900">Upload Image</h2>
+            <p class="text-xs text-gray-500 mt-0.5">JPEG, PNG, GIF or WebP &mdash; up to 10 MB, minimum 100&times;100 px</p>
+        </div>
+        @endif
+
+        <div @class(['bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden' => !$embedded])>
 
             {{-- ── Upload form (idle / uploading / error) ─────────────────────── --}}
             @if (in_array($uploadStatus, ['idle', 'uploading', 'error']))
@@ -230,12 +240,22 @@
                                 Upload another
                             </button>
                         @endif
-                        <a
-                            href="{{ route('dashboard') }}"
-                            class="flex-1 text-center text-sm text-emerald-600 hover:text-emerald-800 font-medium border border-emerald-200 rounded-xl py-2 transition"
-                        >
-                            View library &rarr;
-                        </a>
+                        @if ($embedded)
+                            <button
+                                @click="$dispatch('close-uploader')"
+                                class="flex-1 text-center text-sm text-emerald-600 hover:text-emerald-800 font-medium border border-emerald-200 rounded-xl py-2 transition"
+                            >
+                                View library &rarr;
+                            </button>
+                        @else
+                            <a
+                                href="{{ route('dashboard') }}"
+                                wire:navigate
+                                class="flex-1 text-center text-sm text-emerald-600 hover:text-emerald-800 font-medium border border-emerald-200 rounded-xl py-2 transition"
+                            >
+                                View library &rarr;
+                            </a>
+                        @endif
                     </div>
 
                 </div>
