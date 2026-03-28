@@ -20,7 +20,7 @@ jobs:
           MYSQL_PASSWORD: ${{ secrets.DB_PASSWORD }}
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=5
+        options: --health-cmd="mysqladmin ping -p${{ secrets.DB_PASSWORD }} --silent" --health-interval=10s --health-timeout=5s --health-retries=5
 
       redis:
         image: redis:7.2-alpine
@@ -44,6 +44,12 @@ jobs:
       BROADCAST_CONNECTION: log
       CACHE_STORE: array
       SESSION_DRIVER: array
+      PUSHER_APP_ID: mediaflow-app-id
+      PUSHER_APP_KEY: mediaflow-app-key
+      PUSHER_APP_SECRET: mediaflow-app-secret
+      PUSHER_HOST: 127.0.0.1
+      PUSHER_PORT: 6001
+      PUSHER_SCHEME: http
 
     steps:
       - uses: actions/checkout@v4
@@ -66,7 +72,9 @@ jobs:
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Setup environment
-        run: cp .env.example .env
+        run: |
+          cp .env.example .env
+          sed -i "s|^APP_KEY=.*|APP_KEY=${{ secrets.APP_KEY }}|" .env
 
       - name: Run migrations
         run: php artisan migrate --force
