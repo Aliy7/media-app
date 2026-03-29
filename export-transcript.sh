@@ -85,7 +85,7 @@ output_file = sys.argv[2]
 
 all_sessions = []
 
-for jsonl_file in sorted(glob.glob(os.path.join(sessions_dir, "*.jsonl"))):
+for jsonl_file in glob.glob(os.path.join(sessions_dir, "*.jsonl")):
     session_id = os.path.basename(jsonl_file).replace('.jsonl', '')
     messages = []
 
@@ -141,6 +141,9 @@ for jsonl_file in sorted(glob.glob(os.path.join(sessions_dir, "*.jsonl"))):
 
 if not all_sessions:
     sys.exit(0)
+
+# Sort sessions chronologically by the timestamp of their first message (oldest first)
+all_sessions.sort(key=lambda s: s[1][0][0] if s[1] else '')
 
 with open(output_file, 'w') as f:
     f.write("# Claude Code Transcripts\n")
