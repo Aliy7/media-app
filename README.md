@@ -190,13 +190,13 @@ Prepared demo files are in the `demo/` directory.
 
 These files are designed to be rejected at the upload boundary — none of them should reach the queue.
 
-| File | Size | Dimensions | Expected rejection |
+| File | Size | Dimensions | Expected behaviour |
 |---|---|---|---|
-| `demo/demo-corrupt.jpg` | 236 B | — | Invalid file — PDF bytes disguised as `.jpg`, rejected at MIME check |
-| `demo/demo-too-large.jpg` | 22.4 MB | 5000×4000 | Exceeds the 10 MB limit |
-| `demo/demo-too-small.jpg` | 754 B | 50×50 px | Below the 100×100 px minimum |
+| `demo/demo-corrupt.jpg` | ~2 KB | 300×300 | Valid JPEG header, corrupted pixel data — passes upload validation, dispatched to queue, fails during processing and shows the failed state in the UI |
+| `demo/demo-too-large.jpg` | 22.4 MB | 5000×4000 | Rejected immediately at upload — exceeds the 10 MB limit |
+| `demo/demo-too-small.jpg` | 754 B | 50×50 px | Rejected immediately at upload — below the 100×100 px minimum |
 
-Upload each one and confirm the error message appears immediately with no job dispatched to Horizon.
+`demo-corrupt.jpg` is useful for demonstrating the queue failure path and the retry button. The other two show instant validation rejection with no job dispatched.
 
 ## Useful Commands
 
