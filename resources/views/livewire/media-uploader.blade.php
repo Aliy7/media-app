@@ -27,7 +27,7 @@
 
             {{-- ── Upload form ──────────────────────────────────────────────── --}}
             @if (in_array($uploadStatus, ['idle', 'uploading', 'error']))
-                <form wire:submit.prevent="save" class="p-6 space-y-5">
+                <form wire:key="upload-form-{{ $formKey }}" wire:submit.prevent="save" class="p-6 space-y-5">
 
                     {{-- Drop zone --}}
                     <div>

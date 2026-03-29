@@ -45,6 +45,9 @@ class MediaUploader extends Component
     public ?string $failureStep   = null;
     public ?string $failureError  = null;
 
+    /** Incremented on every reset — causes Livewire to destroy and recreate the form DOM subtree, which clears the browser file input. */
+    public int $formKey = 0;
+
     public function save(): void
     {
         $this->validate();
@@ -198,8 +201,9 @@ class MediaUploader extends Component
 
     public function resetForm(): void
     {
+        $this->formKey++;
         $this->reset([
-            'uploadedUuid', 'uploadStatus', 'errorMessage',
+            'file', 'uploadedUuid', 'uploadStatus', 'errorMessage',
             'progress', 'processingStep', 'failureStep', 'failureError',
         ]);
     }
