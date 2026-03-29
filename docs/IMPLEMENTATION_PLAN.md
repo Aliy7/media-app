@@ -629,7 +629,6 @@ Message: "hardening: edge case handling, OOP audit fixes, security validation, t
 
 #### 6.3 Documentation
 - [ ] Update `README.md` with: prerequisites, startup steps, demo credentials, architecture summary
-- [ ] Ensure `CLAUDE.md` reflects final project structure
 
 #### 6.4 CI — Automated Test Run on Push
 - [ ] Create `.github/workflows/tests.yml`
