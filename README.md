@@ -179,11 +179,24 @@ In local development, any authenticated user can access `/horizon`.
 
 Prepared demo files are in the `demo/` directory.
 
+### Happy path
+
 1. Log in with one of the seeded users.
-2. Upload `demo/demo-small.jpg` to confirm the happy path.
-3. Upload `demo/demo-large.jpg` and watch the UI state changes.
+2. Upload `demo/demo-small.jpg` — small JPEG (800×600, 34 KB). Completes quickly and confirms the full pipeline.
+3. Upload `demo/demo-large.jpg` — large JPEG (4000×3000, 5.6 MB). Processing takes longer; watch each step update in real time.
 4. Open `/horizon` and inspect queue activity across `media-critical`, `media-standard`, and `media-low`.
-5. Upload `demo/demo-corrupt.jpg` to show the invalid-file path.
+
+### Validation rejection tests
+
+These files are designed to be rejected at the upload boundary — none of them should reach the queue.
+
+| File | Size | Dimensions | Expected rejection |
+|---|---|---|---|
+| `demo/demo-corrupt.jpg` | 236 B | — | Invalid file — PDF bytes disguised as `.jpg`, rejected at MIME check |
+| `demo/demo-too-large.jpg` | 22.4 MB | 5000×4000 | Exceeds the 10 MB limit |
+| `demo/demo-too-small.jpg` | 754 B | 50×50 px | Below the 100×100 px minimum |
+
+Upload each one and confirm the error message appears immediately with no job dispatched to Horizon.
 
 ## Useful Commands
 
