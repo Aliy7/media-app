@@ -185,11 +185,11 @@
                             <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
                                 <div class="bg-emerald-500 h-2 rounded-full w-full"></div>
                             </div>
-                            <div class="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+                            <div class="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                                 <img
                                     src="{{ route('media.thumbnail', $uploadedUuid) }}"
                                     alt="Processed thumbnail"
-                                    class="w-full object-cover max-h-48"
+                                    class="w-full object-contain max-h-48"
                                 >
                             </div>
                         </div>

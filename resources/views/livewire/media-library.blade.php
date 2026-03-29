@@ -170,7 +170,7 @@
                                 <img
                                     src="{{ route('media.thumbnail', $media->uuid) }}"
                                     alt="{{ $media->original_filename }}"
-                                    class="w-full h-40 object-cover"
+                                    class="w-full h-40 object-contain bg-gray-50 dark:bg-gray-800/80"
                                 >
                             </div>
                         @else

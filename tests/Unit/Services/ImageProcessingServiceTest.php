@@ -79,13 +79,16 @@ class ImageProcessingServiceTest extends TestCase
         Storage::disk('media')->assertExists($outputPath);
     }
 
-    public function test_thumbnail_produces_square_output(): void
+    public function test_thumbnail_fits_within_bounds_preserving_aspect_ratio(): void
     {
         $outputPath = $this->service->thumbnail('fixture.jpg', 100, 100, 'media');
 
         [$width, $height] = getimagesize($this->absolutePath($outputPath));
-        $this->assertEquals(100, $width);
-        $this->assertEquals(100, $height);
+        // scaleDown preserves aspect ratio — neither dimension exceeds the bound
+        $this->assertLessThanOrEqual(100, $width);
+        $this->assertLessThanOrEqual(100, $height);
+        // At least one dimension must reach the bound (i.e. it was actually scaled)
+        $this->assertTrue($width === 100 || $height === 100);
     }
 
     public function test_thumbnail_output_path_contains_thumbnail_suffix(): void

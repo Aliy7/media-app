@@ -42,7 +42,8 @@ class ImageProcessingService
     }
 
     /**
-     * Generate a thumbnail by cropping to fill the given dimensions.
+     * Generate a thumbnail by scaling down to fit within the given dimensions.
+     * Aspect ratio is always preserved — no cropping occurs.
      *
      * @param  string  $path    Path relative to the given disk
      * @param  int     $width   Target width in pixels
@@ -58,7 +59,7 @@ class ImageProcessingService
             $contents   = Storage::disk($disk)->get($path);
             $outputPath = $this->outputPath($path, 'thumbnail');
 
-            $image   = $this->manager->read($contents)->cover($width, $height);
+            $image   = $this->manager->read($contents)->scaleDown($width, $height);
             $encoded = $this->encodeForFormat($image, $path, quality: 85);
 
             Storage::disk($disk)->put($outputPath, $encoded);
