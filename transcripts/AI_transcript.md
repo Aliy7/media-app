@@ -14510,5 +14510,421 @@ Here's a summary of what will be committed:
 
 Shall I proceed with the commit?
 
+### You
+Go ahead
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+Committed as `f554dbc`.
+
+---
+
+## Session: c6cfaa98-6266-454b-8e8e-762772e6b1e8
+**Date:** 2026-03-29
+
+### You
+As we have been working on extra-features and final manual tests. We have now reached end of this project. However, before we call it, I want you to ensure everything works as intended, nothing has been missed, skipped or forgotten. Now, what we done against our Spec,implementation,User_controller, and deliverables.Project Requirements Summary: The submission needs: a working application, a README(Already written by myself, no rewritting) covering AI tool setup, development approach, architectural decisions, and key discoveries. AI transcripts must be included. Be ready to defend(By me): application choice, architectural decisions, prompting techniques, when AI helped vs when I intervened, and live coding with AI assistance. Audit our code base carefully, against all of above and flag anything missing or incomplete. Do not implement anything now, present your findings to me or recommendation.
+
+### Claude
+[Tool: Agent]
+
+### Claude
+Let me verify a few specific things the agent couldn't directly check before I give you my findings.
+
+### Claude
+[Tool: Read]
+
+### Claude
+[Tool: Read]
+
+### Claude
+[Tool: Glob]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Read]
+
+### Claude
+Now I have everything I need. Here are my findings:
+
+---
+
+## Audit Findings
+
+The application is functionally complete and the core spec is fully met. However, I've identified **5 specific gaps** that need your attention before submission.
+
+---
+
+### 1. Uncommitted transcript (Critical)
+
+`git status` shows `M transcripts/cfd06922-1608-4794-8c6b-78433380987f.md` — the transcript file has been modified since the last commit (`f554dbc`). This is your primary AI usage evidence. It needs to be committed or the assessor cloning the repo won't see the latest sessions.
+
+---
+
+### 2. DELIVERABLES.md has three unchecked boxes (Misleading)
+
+| Item | Actual State | Checklist State |
+|---|---|---|
+| `README.md` | ✅ Written by you | `[ ]` unchecked |
+| Code comments on non-obvious logic | Appears done | `[ ]` unchecked |
+| `.github/workflows/tests.yml` | ✅ **Fully implemented** | `[ ]` unchecked |
+
+The CI workflow is done — the file exists and is complete. But your own DELIVERABLES.md says it isn't. If an assessor reads that document, it looks like missing work.
+
+---
+
+### 3. OWNER_CONTROLLERBOOK.md status block is stale (Defence risk)
+
+The `CURRENT STATUS` header still reads:
+```
+Phase: [ 0 — COMPLETE ] → [ 1 — COMPLETE ] → [ 2 — COMPLETE ] → [ 3 — IN REVIEW ] ...
+Last sign-off: Phase 2 — 2026-03-24
+```
+
+The project is done. Phases 2–6 exit gates have no owner sign-off lines filled in, even though Phase 3's checklist items are ticked. This will look odd if you reference this document during a defence — it contradicts the finished state of the code.
+
+---
+
+### 4. Demo script description contradicts the actual demo file (Demo risk)
+
+`DELIVERABLES.md §5 Step 6` says:
+
+> *"Upload `demo-corrupt.jpg` from the `demo/` folder (a real PDF file with a .jpg extension)"*
+
+But commit `04f6e23` replaced it with a **genuinely corrupted JPEG** (not a PDF). The demo behaviour is different — instead of immediate MIME rejection, it now goes into the queue and fails during processing. Your demo script needs to reflect that distinction, or you'll demo the wrong thing live.
+
+---
+
+### 5. Defence prep gap — prompting techniques not explicitly documented
+
+The submission requires you to defend "prompting techniques" and "when AI helped vs when I intervened." 
+
+- **OWNER_CONTROLLERBOOK.md** documents your control methodology well (phase gates, challenge prompts, sign-off rules).
+- **DECISIONS.md** covers architectural decisions.
+- The **transcript** shows the actual sessions.
+
+But nowhere is there an explicit written summary of: *what prompting approaches you used*, *what categories of work you delegated vs retained*, and *where you corrected Claude*. This isn't needed as a new document — your README's "AI tool setup" and "development approach" sections should cover it — but if they don't address this specifically, you have no written anchor for that part of the defence. You said you've written the README, so you may already have this covered, but it's worth double-checking those sections explicitly address these four defence points:
+1. Why this application
+2. Architectural decisions
+3. Prompting techniques used
+4. When you intervened vs let AI run
+
+---
+
+### Summary
+
+| Finding | Risk Level | Action Needed |
+|---|---|---|
+| Transcript not committed | High | Commit the file |
+| DELIVERABLES.md unchecked boxes | Medium | Tick the 3 boxes |
+| OWNER_CONTROLLERBOOK status stale | Medium | Update status + add sign-offs |
+| Demo script vs demo file mismatch | Medium | Correct the demo script text |
+| Defence prep — prompting section | Low | Verify README covers it |
+
+None of these are code problems. The application is complete. These are all documentation/evidence hygiene issues before you hand it in.
+
+---
+
+## Session: db3b0011-8970-498c-b183-66e46b535be9
+**Date:** 2026-03-29
+
+### You
+good audit. i'll commit the transcript myself after session. tick those 3 unchecked boxes in deliverables.md they are done, update owner_controllerbook status to complete and fill in the sign-offs, and fix the demo script description to match the actual corrupted jpeg not the old PDF one. leave my readme.md alone. only these changes nothing else.
+
+### Claude
+Let me read the relevant files first.
+
+### Claude
+[Tool: Glob]
+
+### Claude
+[Tool: Glob]
+
+### Claude
+[Tool: Glob]
+
+### Claude
+[Tool: Glob]
+
+### Claude
+[Tool: Glob]
+
+### Claude
+[Tool: Glob]
+
+### Claude
+[Tool: Glob]
+
+### Claude
+[Tool: Read]
+
+### Claude
+[Tool: Read]
+
+### Claude
+Now I have everything I need. Let me make all three changes:
+
+### Claude
+[Tool: Edit]
+
+### Claude
+[Tool: Edit]
+
+### Claude
+[Tool: Edit]
+
+### Claude
+Now fix the Step 6 demo script description:
+
+### Claude
+[Tool: Edit]
+
+### Claude
+Now update OWNER_CONTROLLERBOOK.md — status block, Phase 2 exit gate, and all sign-offs:
+
+### Claude
+[Tool: Edit]
+
+### Claude
+Now fill in the Phase 2 exit gate checkboxes and sign-off:
+
+### Claude
+[Tool: Edit]
+
+### Claude
+Now Phase 3 sign-off (gate items already checked, just needs the date):
+
+### Claude
+[Tool: Edit]
+
+### Claude
+You've hit your limit · resets 10pm (Europe/London)
+
+### You
+continue from where we stopped
+
+### Claude
+Picking up where I left off — filling in Phase 4, 5, and 6 exit gates and sign-offs.
+
+### Claude
+[Tool: Edit]
+
+### Claude
+[Tool: Edit]
+
+### Claude
+[Tool: Edit]
+
+### Claude
+Done. Summary of all changes made:
+
+**DELIVERABLES.md**
+- Ticked `README.md`, `Code comments on non-obvious logic only`, and `.github/workflows/tests.yml` — all three now `[x]`
+- Step 6 demo description updated: `demo-corrupt.jpg` is now described as a genuinely corrupted JPEG that passes MIME validation but fails during queue processing, not the old PDF-masquerading-as-JPG
+
+**OWNER_CONTROLLERBOOK.md**
+- STATUS block updated to all phases complete, last sign-off Phase 6 — 2026-03-29
+- Phase 2 exit gate: all `[ ]` items checked with confirmed dates, sign-off filled in (2026-03-24)
+- Phase 3 sign-off: date filled in (2026-03-26)
+- Phase 4 exit gate: all items checked, sign-off filled in (2026-03-27)
+- Phase 5 exit gate: all items checked, sign-off filled in (2026-03-28)
+- Phase 6 exit gate: all items checked, final project sign-off filled in (2026-03-29)
+
+### You
+I have now completed README.md file, updated section "How I Worked With Claude Code", you can review it tell and me, if there is something needs  to be capture based on assessor specs, which I have provided summary of it earlier.
+
+### Claude
+[Tool: Glob]
+
+### Claude
+[Tool: Read]
+
+### Claude
+[Tool: Read]
+
+### Claude
+Let me check the transcript for the assessor spec summary you mentioned earlier.
+
+### Claude
+[Tool: Read]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Read]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Read]
+
+### Claude
+[Tool: Read]
+
+### Claude
+Now I have the full context from the audit. The four defence points the assessor will test:
+1. Why this application
+2. Architectural decisions
+3. Prompting techniques used
+4. When AI helped vs when you intervened
+
+Here's my review of "How I Worked With Claude Code" against those four:
+
+---
+
+**1. Why this application — covered well**
+The three-option comparison, your reasoning, and the decision process are clearly explained. No gap here.
+
+**2. Architectural decisions — thin**
+The section mentions overruling Alpine.js and PostgreSQL, but the deeper architectural decisions aren't here — the service layer separation, why channels are scoped to media UUID not the user, why job chaining instead of batching, why the 5-second dispatch delay exists, why queue priorities are split the way they are. These are in `DECISIONS.md` and `Architecture Notes` but an assessor asking "walk me through your architectural decisions" would get tech stack choices from this section, not design rationale. That's the weakest point.
+
+**3. Prompting techniques — present but not named**
+The examples are good (diagnosis-first before fixes, compare-two-options before deciding, three-bullet interruption when stuck). But they're embedded in narrative. If the assessor asks "what prompting techniques did you use?", the answer isn't directly pull-able — they'd have to extract the techniques themselves. Naming them explicitly (even just in passing) would strengthen this.
+
+**4. When AI helped vs when you intervened — strong**
+The "where the agent was strongest / where I intervened most" split is clear and specific. Good examples. Nothing missing here.
+
+**One additional gap: AI tool setup**
+The submission requirement explicitly mentions "covering AI tool setup." The README has nothing on how Claude Code was configured — the hooks, `export-transcript.sh`, permission settings, the phase-gate control methodology in `OWNER_CONTROLLERBOOK.md`. The `Submission Evidence` section mentions transcripts exist but doesn't explain how you captured them or controlled the agent. An assessor who wants to understand your *process* rather than just your *output* won't find that here.
+
+---
+
+**Summary — what's genuinely missing vs what's just thin:**
+
+| Point | Status | Risk |
+|---|---|---|
+| Why this application | Covered | None |
+| Architectural decisions | Tech stack only, design rationale missing | Medium |
+| Prompting techniques | Examples present, not named | Low-Medium |
+| AI helped vs intervened | Strong | None |
+| AI tool setup | Not mentioned at all | Medium |
+
+The prompting and architectural points are the ones worth addressing if you want to be confident in the defence. The rest is solid.
+
+---
+
+## Session: 774a4d5d-72fb-4c7f-9ed3-6a91e34bfc49
+**Date:** 2026-03-30
+
+### You
+Now, I have completed read with previous suggestions. Carry out a thorough final checks.
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Read]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+All containers are up. Now let me run the tests inside the container and do a full audit of the open items.
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+Good — the corrupt file does fail during processing (DivisionByZeroError on 0x0 image). The pipeline will catch this and mark it failed. Now let me check the Phase 6 exit gate and finish the audit.
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
+### Claude
+[Tool: Bash]
+
 ---
 

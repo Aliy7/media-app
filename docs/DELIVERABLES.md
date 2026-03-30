@@ -125,13 +125,13 @@ The application runs from a single command on any machine with Docker installed.
 ### 2.12 Documentation
 | Deliverable | Done | Phase | Demo Step |
 |---|---|---|---|
-| `README.md`: setup, demo credentials, architecture overview | [ ] | Phase 6 | Step 1 |
+| `README.md`: setup, demo credentials, architecture overview | [x] | Phase 6 | Step 1 |
 | `docs/PROJECT_SPEC.md` | [x] | Phase 0 | Step 7 |
 | `docs/IMPLEMENTATION_PLAN.md` | [x] | Phase 0 | Step 7 |
 | `docs/DELIVERABLES.md` | [x] | Phase 0 | Step 7 |
-| Code comments on non-obvious logic only | [ ] | Phase 5 | Step 7 |
+| Code comments on non-obvious logic only | [x] | Phase 5 | Step 7 |
 | `transcripts/` — session transcripts as evidence of coding agent usage | [x] | All phases | Step 7 |
-| `.github/workflows/tests.yml` — CI pipeline | [ ] | Phase 6 | Step 7 |
+| `.github/workflows/tests.yml` — CI pipeline | [x] | Phase 6 | Step 7 |
 
 ---
 
@@ -269,8 +269,8 @@ docker compose exec app php artisan migrate --seed
 **Shows:** Production queue monitoring, queue priorities, job configuration.
 
 ### Step 6: Failure Handling
-- Upload `demo-corrupt.jpg` from the `demo/` folder (a real PDF file with a `.jpg` extension)
-- Observe: MIME check rejects it immediately, no job is dispatched, UI displays the error message inline
+- Upload `demo-corrupt.jpg` from the `demo/` folder (a genuinely corrupted JPEG — valid MIME type but truncated/invalid image data)
+- Observe: file passes MIME validation and is dispatched to the queue, but the processing job fails when Intervention Image cannot decode the corrupt data; UI displays the error message inline and the failed job appears in Horizon
 - Alternatively retry a failed card from the library to show the re-queue path
 **Shows:** Server-side MIME validation, InvalidMediaException handling, user-facing error feedback, Horizon failure visibility.
 

@@ -1,5 +1,13 @@
 # Image Processing Media App
 
+![Tests](https://github.com/Aliy7/media-app/actions/workflows/tests.yml/badge.svg)
+
+**Author:** Ali Muktar
+**Date:** March 2026
+**Purpose:** Technical interview assignment
+
+---
+
 I built this image processing media app for a technical assignment focused on queued background processing in Laravel, with Claude Code helping during development.
 
 The application lets an authenticated user upload an image, get an immediate response, and then watch the processing continue in the background. The interface updates in real time as the job moves through each step.
@@ -85,24 +93,70 @@ I tried to keep the structure simple and easy to explain:
 
 This helped keep the HTTP layer, the queue workers, and the browser side clearly separate.
 
-## Why I Used Claude Code
+Some of the less obvious decisions and why I made them:
 
-This project was developed with Claude Code.
+- We used a service layer because Livewire components call the upload logic directly without going through the controller. If the business logic lived in the controller, Livewire would have to duplicate it or POST to itself. A shared service avoids that.
+- We scoped broadcast channels to `media.{uuid}` not to the user. This way each upload gets its own channel and multiple uploads from the same user can receive independent progress updates without interfering with each other.
+- We run resize and thumbnail in parallel using `Bus::batch()` instead of sequentially. Thumbnails are what the user sees first and there is no reason to wait for resize to finish before starting them.
+- We split queue priorities so thumbnails land on `media-critical` for fast UI feedback, main resize work goes to `media-standard`, and optimisation goes to `media-low` since nobody is waiting on it.
 
-I mainly used it for:
+## How I Worked With Claude Code
 
-- exploring and comparing project options before implementation
-- scaffolding infrastructure and repetitive code
-- reviewing architecture trade-offs
-- generating and refining tests
-- debugging queue, serialization, and broadcasting edge cases
-- drafting and revising project documentation
+Claude Code wrote the code in this project. My role was to direct what it built, review every output, catch mistakes, and make all the decisions. That is what the assignment asks for and that is how I used it.
 
-I still reviewed the suggestions myself and made the final decisions.
+Before any code was written my first prompt was "do not write any code just yet". I made the agent compare three project ideas, evaluate complexity, time needed, and trade-offs for each one. I picked media processing after going through the options myself.
 
-## My Development Approach
+When the agent suggested tech choices I disagreed with, I overruled them. It recommended Alpine.js and PostgreSQL. I went with Livewire and MySQL because I know them and familiarity under time pressure is a valid engineering choice. I made it explain why before I accepted anything.
 
-I started by comparing a few project ideas before writing any code. After that, I worked in phases:
+After every critical piece of code I reviewed what was written and challenged it. When I found issues I asked the agent to propose two or three solutions. I evaluated each one against the spec, thought about the trade-offs, then decided which one to go with. For example when the upload form was not resetting after a completed upload, I asked for diagnosis first, then two proposed fixes. I picked the simpler one using a dynamic form key because it had no race conditions.
+
+I caught things the agent missed. The `$fillable` array was too loose so I told it to remove system controlled fields like uuid, status, and progress. Authorisation was copy pasted across controller methods so I pointed that out and told it to use a Policy. Thumbnails were using a greedy crop algorithm that was cutting parts of images off. I flagged it and we switched to aspect ratio safe resizing. The corrupt demo file was just an empty PDF renamed to jpg so I told it to make a real corrupted JPEG with valid headers and broken pixel data, something that would actually show the queue failure path.
+
+I enforced strict phase gates. Every phase had to pass verification before the next one started. I ran manual checks myself and signed off each phase in the control document. When the agent got stuck going in circles on the same problem I interrupted it and told it to stop, diagnose only, propose fixes, and wait for my input before doing anything.
+
+What I kept ownership of: this README, all git commits, the methodology choice, every architectural decision, manual testing, and the final audit. I reviewed every commit before it was pushed. When the agent committed a CI workflow with hardcoded credentials without asking me, I made it revert straight away.
+
+Where the agent was strongest: writing boilerplate like migrations, factories and test scaffolds. Diagnosing environment problems like PHP version conflicts and Docker build failures. Producing large amounts of tests quickly.
+
+Where I intervened most: when it kept repeating the same failed fix, when it was overcomplicating something that needed a simple solution, and when it was spending too long reading files instead of acting. From time to time the agent would start hallucinating or get lost in reading and come back with nothing useful. In those cases I stepped in with my own knowledge or went and researched the problem myself to help it navigate. When it was taking too long on a fix it usually meant it was memory overloaded trying to do too many things at once and getting stuck. I would interrupt it and ask it to summarise what it was working on in three bullet points, then tell it to complete one thing before moving to the next and wait for my approval.
+
+## Prompting Techniques
+
+These are the main approaches I used when working with the agent:
+
+- Scope before code: start with "do not write any code" and make it evaluate options first
+- Compare before deciding: ask for two or three solutions, evaluate trade-offs, then pick one
+- Diagnosis first: when something broke, ask for root cause analysis before any fix attempt
+- Three bullet summary: when the agent was stuck or overloaded, interrupt it, ask it to list what it was doing in three points, then complete them one at a time
+- Sequential focus: do one thing, test it, wait for my approval, then move to the next
+- Phase gates: no phase starts until the previous one passes verification and I sign it off manually
+
+## AI Tool Setup
+
+I installed Claude Code globally in WSL:
+
+```bash
+sudo npm install -g @anthropic-ai/claude-code
+```
+
+Then navigated to the project and launched it:
+
+```bash
+cd ~/projects/media-app
+claude
+```
+
+On first launch it gives you a login URL. You open it in a browser, log in, copy the token it generates, and paste it back into the terminal. After that it has access to the project files and is ready to go.
+
+I used VS Code connected to WSL (`code .` from the project directory) so the integrated terminal ran Claude Code with full access to the codebase.
+
+To capture all conversations I set up `export-transcript.sh` which converts Claude Code session files into clean markdown. Two hooks in the settings run this automatically on every prompt and on session end so nothing is lost even if a session is interrupted. All sessions are consolidated into a single transcript file in chronological order inside `transcripts/`.
+
+I also kept `docs/OWNER_CONTROLLERBOOK.md` as my control document where I tracked phase sign-offs, exit criteria, and checkpoint results. Every phase had a human review checkpoint that I ran manually before giving approval to move on.
+
+## Development Approach
+
+I started by comparing a few project ideas before writing any code. After that I worked in phases:
 
 1. Infrastructure and Docker setup
 2. Upload flow and domain model
@@ -182,8 +236,8 @@ Prepared demo files are in the `demo/` directory.
 ### Happy path
 
 1. Log in with one of the seeded users.
-2. Upload `demo/demo-small.jpg` — small JPEG (800×600, 34 KB). Completes quickly and confirms the full pipeline.
-3. Upload `demo/demo-large.jpg` — large JPEG (4000×3000, 5.6 MB). Processing takes longer; watch each step update in real time.
+2. Upload `demo/demo-small.jpg` — small JPEG (800x600, 34 KB). Completes quickly and confirms the full pipeline.
+3. Upload `demo/demo-large.jpg` — large JPEG (4000x3000, 5.6 MB). Processing takes longer; watch each step update in real time.
 4. Open `/horizon` and inspect queue activity across `media-critical`, `media-standard`, and `media-low`.
 
 ### Validation rejection tests
@@ -192,9 +246,9 @@ These files are designed to be rejected at the upload boundary — none of them 
 
 | File | Size | Dimensions | Expected behaviour |
 |---|---|---|---|
-| `demo/demo-corrupt.jpg` | ~2 KB | 300×300 | Valid JPEG header, corrupted pixel data — passes upload validation, dispatched to queue, fails during processing and shows the failed state in the UI |
-| `demo/demo-too-large.jpg` | 22.4 MB | 5000×4000 | Rejected immediately at upload — exceeds the 10 MB limit |
-| `demo/demo-too-small.jpg` | 754 B | 50×50 px | Rejected immediately at upload — below the 100×100 px minimum |
+| `demo/demo-corrupt.jpg` | ~2 KB | 300x300 | Valid JPEG header, corrupted pixel data — passes upload validation, dispatched to queue, fails during processing and shows the failed state in the UI |
+| `demo/demo-too-large.jpg` | 22.4 MB | 5000x4000 | Rejected immediately at upload — exceeds the 10 MB limit |
+| `demo/demo-too-small.jpg` | 754 B | 50x50 px | Rejected immediately at upload — below the 100x100 px minimum |
 
 `demo-corrupt.jpg` is useful for demonstrating the queue failure path and the retry button. The other two show instant validation rejection with no job dispatched.
 
@@ -255,4 +309,3 @@ To keep the assignment focused, I kept these items out of scope:
 ## Final Note
 
 The aim of this project was not just to use queues in Laravel, but to show that I understand why they are useful, how the main parts fit together, and where AI help was useful versus where my own judgement mattered.
-
