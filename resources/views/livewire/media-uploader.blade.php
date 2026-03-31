@@ -253,7 +253,7 @@
                         @endif
                         @if ($embedded)
                             <button
-                                @click="$dispatch('close-uploader')"
+                                @click="$dispatch('close-uploader'); setTimeout(() => window.location.reload(), 100)"
                                 class="flex-1 text-center text-sm font-medium
                                        text-indigo-600 dark:text-indigo-400
                                        hover:text-indigo-800 dark:hover:text-indigo-300
