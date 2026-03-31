@@ -45,7 +45,7 @@ class MediaUploader extends Component
     public ?string $failureStep   = null;
     public ?string $failureError  = null;
 
-    /** Incremented on every reset — causes Livewire to destroy and recreate the form DOM subtree, which clears the browser file input. */
+    /** Incremented on every reset — causes Livewire to destroy and recreate the form DOM subtree, which clears the browser file input. Alternates between 0/1 for max visibility in wire:key. */
     public int $formKey = 0;
 
     public function save(): void
@@ -106,6 +106,11 @@ class MediaUploader extends Component
     #[On('echo-private:media.{uploadedUuid},.media.processing.started')]
     public function onProcessingStarted(array $event): void
     {
+        // Guard: ignore events for empty/invalid UUID (after reset)
+        if (!$this->uploadedUuid) {
+            return;
+        }
+        
         $this->uploadStatus   = 'processing';
         $this->processingStep = 'starting';
         $this->progress       = 0;
@@ -114,6 +119,11 @@ class MediaUploader extends Component
     #[On('echo-private:media.{uploadedUuid},.media.step.completed')]
     public function onStepCompleted(array $event): void
     {
+        // Guard: ignore events for empty/invalid UUID (after reset)
+        if (!$this->uploadedUuid) {
+            return;
+        }
+        
         $this->uploadStatus   = 'processing';
         $this->processingStep = $event['step'];
         $this->progress       = $event['progress'];
@@ -122,6 +132,11 @@ class MediaUploader extends Component
     #[On('echo-private:media.{uploadedUuid},.media.processing.completed')]
     public function onProcessingCompleted(array $event): void
     {
+        // Guard: ignore events for empty/invalid UUID (after reset)
+        if (!$this->uploadedUuid) {
+            return;
+        }
+        
         $this->uploadStatus = 'completed';
         $this->progress     = 100;
     }
@@ -129,6 +144,11 @@ class MediaUploader extends Component
     #[On('echo-private:media.{uploadedUuid},.media.processing.failed')]
     public function onProcessingFailed(array $event): void
     {
+        // Guard: ignore events for empty/invalid UUID (after reset)
+        if (!$this->uploadedUuid) {
+            return;
+        }
+        
         $this->uploadStatus = 'failed';
         $this->failureStep  = $event['step'];
         $this->failureError = $event['error'];
@@ -161,8 +181,16 @@ class MediaUploader extends Component
             $this->processingStep = $media->processing_step;
             $this->progress       = $media->progress ?? 0;
         } elseif ($media->status === Media::STATUS_COMPLETED) {
-            $this->uploadStatus = 'completed';
-            $this->progress     = 100;
+            // Show "Optimising…" for one poll cycle before marking complete,
+            // so the step is visible even if the broadcast event was missed.
+            if ($this->processingStep !== 'optimize') {
+                $this->uploadStatus   = 'processing';
+                $this->processingStep = 'optimize';
+                $this->progress       = 90;
+            } else {
+                $this->uploadStatus = 'completed';
+                $this->progress     = 100;
+            }
         } elseif ($media->status === Media::STATUS_FAILED) {
             $this->uploadStatus = 'failed';
             $this->failureStep  = $media->processing_step;
@@ -201,11 +229,27 @@ class MediaUploader extends Component
 
     public function resetForm(): void
     {
-        $this->formKey++;
-        $this->reset([
-            'file', 'uploadedUuid', 'uploadStatus', 'errorMessage',
-            'progress', 'processingStep', 'failureStep', 'failureError',
-        ]);
+        // Immediately clear the uploaded UUID so the image route breaks
+        // This ensures the image won't load even if DOM isn't immediately updated
+        $this->uploadedUuid = '';
+        
+        // Toggle formKey between 0 and 1 for maximum visibility of key change
+        $this->formKey = $this->formKey === 0 ? 1 : 0;
+        
+        // Reset all remaining state to initial values
+        $this->file               = null;
+        $this->uploadStatus       = 'idle';
+        $this->errorMessage       = null;
+        $this->progress           = 0;
+        $this->processingStep     = null;
+        $this->failureStep        = null;
+        $this->failureError       = null;
+        
+        // Dispatch event to clear the browser file input's displayed value.
+        // Alpine catches this on @clear-file-input.window and sets input.value = ''.
+        // Also, x-init on the input runs after the DOM is settled,
+        // so the input is cleared both ways — reliable regardless of morphdom behavior.
+        $this->dispatch('clear-file-input');
     }
 
     public function render()

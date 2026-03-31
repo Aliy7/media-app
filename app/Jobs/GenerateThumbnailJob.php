@@ -75,6 +75,10 @@ class GenerateThumbnailJob implements ShouldQueue
      */
     public function handle(ImageProcessingService $service): void
     {
+        if ($delay = (int) config('media.step_delay', 0)) {
+            sleep($delay);
+        }
+
         $width  = $this->width  ?: (int) config('media.thumbnail.width',  300);
         $height = $this->height ?: (int) config('media.thumbnail.height', 300);
 

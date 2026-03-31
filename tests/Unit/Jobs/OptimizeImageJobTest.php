@@ -4,6 +4,7 @@ namespace Tests\Unit\Jobs;
 
 use App\Events\MediaProcessingCompleted;
 use App\Events\MediaProcessingFailed;
+use App\Events\MediaStepCompleted;
 use App\Jobs\OptimizeImageJob;
 use App\Models\Media;
 use App\Services\ImageProcessingService;
@@ -116,6 +117,42 @@ class OptimizeImageJobTest extends TestCase
         Event::assertDispatched(MediaProcessingCompleted::class, function ($event) use ($media) {
             return $event->media->is($media);
         });
+    }
+
+    public function test_handle_fires_media_step_completed_event_for_optimize(): void
+    {
+        Event::fake();
+
+        $media   = Media::factory()->create();
+        $service = $this->createMock(ImageProcessingService::class);
+        $service->method('optimize')->willReturn('outputs/test_optimized.jpg');
+
+        (new OptimizeImageJob($media))->handle($service);
+
+        Event::assertDispatched(MediaStepCompleted::class, function ($event) use ($media) {
+            return $event->media->is($media)
+                && $event->step === 'optimize'
+                && $event->progress === 90;
+        });
+    }
+
+    public function test_handle_fires_step_completed_before_processing_completed(): void
+    {
+        $fired = [];
+        Event::listen(MediaStepCompleted::class, function () use (&$fired) {
+            $fired[] = 'step';
+        });
+        Event::listen(MediaProcessingCompleted::class, function () use (&$fired) {
+            $fired[] = 'completed';
+        });
+
+        $media   = Media::factory()->create();
+        $service = $this->createMock(ImageProcessingService::class);
+        $service->method('optimize')->willReturn('outputs/test_optimized.jpg');
+
+        (new OptimizeImageJob($media))->handle($service);
+
+        $this->assertEquals(['step', 'completed'], $fired);
     }
 
     // -----------------------------------------------------------------------

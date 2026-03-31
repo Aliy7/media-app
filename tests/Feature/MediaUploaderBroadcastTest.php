@@ -92,7 +92,8 @@ class MediaUploaderBroadcastTest extends TestCase
             ->assertSet('uploadStatus', 'idle')
             ->assertSet('uploadedUuid', '')
             ->assertSet('progress', 0)
-            ->assertSet('processingStep', null);
+            ->assertSet('processingStep', null)
+            ->assertDispatched('clear-file-input');
     }
 
     public function test_reset_form_clears_failure_fields(): void
@@ -104,6 +105,7 @@ class MediaUploaderBroadcastTest extends TestCase
             ->call('resetForm')
             ->assertSet('uploadStatus', 'idle')
             ->assertSet('failureStep', null)
-            ->assertSet('failureError', null);
+            ->assertSet('failureError', null)
+            ->assertDispatched('clear-file-input');
     }
 }

@@ -46,7 +46,7 @@ if [[ -z "${SESSIONS_DIR}" ]]; then
 fi
 
 OUTPUT_DIR="${1:-$SCRIPT_DIR/transcripts}"
-CONSOLIDATED_FILE="$OUTPUT_DIR/cfd06922-1608-4794-8c6b-78433380987f.md"
+CONSOLIDATED_FILE="$OUTPUT_DIR/AI_transcript.md"
 LOG_FILE="${CLAUDE_TRANSCRIPT_LOG:-$OUTPUT_DIR/claude-transcript-export.log}"
 
 mkdir -p "$OUTPUT_DIR"

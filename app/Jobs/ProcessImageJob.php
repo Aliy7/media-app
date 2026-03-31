@@ -70,6 +70,10 @@ class ProcessImageJob implements ShouldQueue
      */
     public function handle(): void
     {
+        if ($delay = (int) config('media.step_delay', 0)) {
+            sleep($delay);
+        }
+
         $this->media->update(['status' => Media::STATUS_PROCESSING]);
 
         event(new MediaProcessingStarted($this->media));

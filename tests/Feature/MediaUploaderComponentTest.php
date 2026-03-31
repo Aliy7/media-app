@@ -193,13 +193,36 @@ class MediaUploaderComponentTest extends TestCase
             'progress' => 100,
         ]);
 
+        // processingStep is already 'optimize' — second poll cycle transitions to completed.
         Livewire::actingAs($user)
             ->test(MediaUploader::class)
             ->set('uploadedUuid', $media->uuid)
             ->set('uploadStatus', 'processing')
+            ->set('processingStep', 'optimize')
             ->call('checkStatus')
             ->assertSet('uploadStatus', 'completed')
             ->assertSet('progress', 100);
+    }
+
+    public function test_check_status_shows_optimize_step_before_completing(): void
+    {
+        $user  = User::factory()->create();
+        $media = Media::factory()->create([
+            'user_id'  => $user->id,
+            'status'   => Media::STATUS_COMPLETED,
+            'progress' => 100,
+        ]);
+
+        // processingStep is not 'optimize' yet — first poll cycle shows "Optimising…".
+        Livewire::actingAs($user)
+            ->test(MediaUploader::class)
+            ->set('uploadedUuid', $media->uuid)
+            ->set('uploadStatus', 'processing')
+            ->set('processingStep', 'thumbnail')
+            ->call('checkStatus')
+            ->assertSet('uploadStatus', 'processing')
+            ->assertSet('processingStep', 'optimize')
+            ->assertSet('progress', 90);
     }
 
     public function test_check_status_syncs_failed_state_from_db(): void

@@ -1,4 +1,9 @@
-<div @class(['min-h-screen bg-gray-50 dark:bg-gray-950 flex items-start justify-center pt-16 px-4 transition-colors duration-200' => !$embedded])>
+<div @class(['min-h-screen bg-gray-50 dark:bg-gray-950 flex items-start justify-center pt-16 px-4 transition-colors duration-200' => !$embedded])
+     x-data 
+     @clear-file-input.window="
+        const fileInput = document.getElementById('file-input');
+        if (fileInput) fileInput.value = '';
+     ">
     <div class="{{ $embedded ? 'w-full' : 'w-full max-w-lg' }}">
 
         {{-- Page header — standalone only --}}
@@ -23,7 +28,7 @@
         </div>
         @endif
 
-        <div @class(['bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden' => !$embedded])>
+        <div @class(['bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden' => !$embedded]) wire:key="section-{{ $uploadStatus }}-{{ $formKey }}">
 
             {{-- ── Upload form ──────────────────────────────────────────────── --}}
             @if (in_array($uploadStatus, ['idle', 'uploading', 'error']))
@@ -67,10 +72,10 @@
                             id="file-input"
                             name="file"
                             type="file"
-                            wire:key="file-input"
                             wire:model.live="file"
                             accept="image/jpeg,image/png,image/gif,image/webp"
                             class="sr-only"
+                            x-init="$el.value = ''"
                         >
 
                         @error('file')
@@ -185,6 +190,7 @@
                             <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
                                 <div class="bg-emerald-500 h-2 rounded-full w-full"></div>
                             </div>
+                            @if ($uploadedUuid)
                             <div class="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                                 <img
                                     src="{{ route('media.thumbnail', $uploadedUuid) }}"
@@ -192,6 +198,7 @@
                                     class="w-full object-contain max-h-48"
                                 >
                             </div>
+                            @endif
                         </div>
                     @endif
 

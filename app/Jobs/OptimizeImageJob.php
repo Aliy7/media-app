@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Events\MediaProcessingCompleted;
 use App\Events\MediaProcessingFailed;
+use App\Events\MediaStepCompleted;
 use App\Models\Media;
 use App\Services\ImageProcessingService;
 use Illuminate\Bus\Queueable;
@@ -64,24 +65,46 @@ class OptimizeImageJob implements ShouldQueue
      *
      * ImageProcessingService is resolved from the container by Laravel.
      */
+    /** Progress reported when the optimising step starts — before marking complete. */
+    private const STEP_PROGRESS = 90;
+
     public function handle(ImageProcessingService $service): void
     {
+        // Pause so the previous step (thumbnail) stays visible in the UI.
+        if ($delay = (int) config('media.step_delay', 0)) {
+            sleep($delay);
+        }
+
         $outputPath = $service->optimize(
             $this->media->stored_filename,
             'media',
         );
 
-        $outputs               = $this->media->outputs ?? [];
-        $outputs['optimized']  = $outputPath;
+        $outputs              = $this->media->outputs ?? [];
+        $outputs['optimized'] = $outputPath;
 
+        // Write the optimising step while keeping status as processing so the
+        // polling fallback also shows "Optimising…" before marking complete.
         $this->media->update([
             'processing_step' => 'optimize',
-            'status'          => Media::STATUS_COMPLETED,
-            'progress'        => 100,
+            'progress'        => self::STEP_PROGRESS,
             'outputs'         => $outputs,
         ]);
 
         $this->media->increment('bytes_processed', $this->media->file_size);
+
+        // Broadcast the step so the UI transitions to "Optimising… 90%".
+        event(new MediaStepCompleted($this->media, 'optimize', self::STEP_PROGRESS, $outputPath));
+
+        // Hold "Optimising…" visible before firing the completion event.
+        if ($delay = (int) config('media.step_delay', 0)) {
+            sleep($delay);
+        }
+
+        $this->media->update([
+            'status'   => Media::STATUS_COMPLETED,
+            'progress' => 100,
+        ]);
 
         event(new MediaProcessingCompleted($this->media));
     }

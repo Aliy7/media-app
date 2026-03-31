@@ -70,6 +70,10 @@ class ResizeImageJob implements ShouldQueue
      */
     public function handle(ImageProcessingService $service): void
     {
+        if ($delay = (int) config('media.step_delay', 0)) {
+            sleep($delay);
+        }
+
         $outputPath = $service->resize(
             $this->media->stored_filename,
             $this->width,
